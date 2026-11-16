@@ -70,7 +70,7 @@ select,input.ln{height:44px;border-radius:10px;border:1px solid var(--line);back
 .big small{font-size:13px;color:var(--mute)}
 .pick{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-bottom:6px}
 .pick label{font-size:13px;color:var(--mute);display:grid;gap:4px}
-nav.tabs{position:fixed;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(4,1fr);background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(3,1fr);background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:5}
 .tab{border:0;background:none;color:var(--mute);font-size:15px;font-weight:700;height:64px;display:grid;place-items:center;gap:0;cursor:pointer;padding:6px 0}
 .tab svg{width:24px;height:24px}
 .tab[aria-selected=true]{color:var(--turf)}
@@ -86,15 +86,7 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;display:grid;grid-template-colum
 .game i{font-style:normal;color:var(--mute);font-size:13px}.gsub{font-size:13px;color:var(--mute)}
 .warn{color:var(--bad);font-weight:600}.form{font-size:13px}.form b{display:inline-block;min-width:30px;text-align:center;background:var(--chip);border-radius:6px;padding:0 5px;margin-right:2px;color:var(--ink);font-weight:600}
 .up{color:var(--good);font-weight:700;font-size:13px}.dn{color:var(--bad);font-weight:700;font-size:13px}
-.trk,.res{border:1px solid var(--line);background:var(--card);color:var(--ink);font:600 13px Barlow,system-ui,sans-serif;height:36px;padding:0 12px;border-radius:18px;cursor:pointer}
-.res{margin-right:6px}.res.del{color:var(--bad)}
 .pos{color:var(--good)}.neg{color:var(--bad)}
-.bar{height:6px;background:var(--line);border-radius:3px;margin-top:6px;overflow:hidden}.bar i{display:block;height:100%}
-.warnbox{background:var(--bad);color:#fff;border-radius:10px;padding:8px 12px;font-weight:600;margin:10px 0 0}
-form.bf{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
-form.bf label{font-size:13px;color:var(--mute);display:grid;gap:4px}form.bf .full{grid-column:1/-1}
-form.bf input,form.bf select{width:100%}
-.go{height:44px;border:0;border-radius:10px;background:var(--turf);color:#fff;font:700 17px "Saira Condensed",Barlow,sans-serif;cursor:pointer}
 table.lg{width:100%;border-collapse:collapse;font-size:14px}table.lg td{padding:6px 4px;border-top:1px solid var(--line)}table.lg td:first-child{color:var(--mute);white-space:nowrap;width:48px}
 @media (max-width:380px){.duo{gap:8px}li.r{font-size:14px}li.r .num{font-size:16px}}
 </style>
@@ -116,23 +108,6 @@ table.lg{width:100%;border-collapse:collapse;font-size:14px}table.lg td{padding:
     <div id="psearch-out"></div>
     <div class="grid" id="players-out"></div>
   </section>
-  <section class="view" id="v-bets">
-    <div class="card"><h3>Add a bet</h3>
-      <form class="bf" id="bet-form" novalidate>
-        <label class="full">Bet<input id="bf-desc" class="search" style="margin:0" placeholder="e.g. Gibbs anytime TD"></label>
-        <label>Type<select id="bf-type"></select></label>
-        <label>Stake (£)<input id="bf-stake" class="ln" inputmode="decimal" placeholder="5"></label>
-        <label>Odds<input id="bf-odds" class="ln" inputmode="text" placeholder="6/4 or 2.5"></label>
-        <label>&nbsp;<button class="go" type="submit">Add bet</button></label>
-        <p class="note full" id="bf-msg" style="margin:0;color:var(--bad)"></p>
-      </form></div>
-    <div class="card" style="margin-top:12px" id="bets-sum"></div>
-    <div class="card" style="margin-top:12px"><h3>Your bets</h3><div id="bets-list"></div></div>
-    <div class="card" style="margin-top:12px"><h3>Weekly stake limit</h3>
-      <label class="note" style="display:grid;gap:4px;margin:0">Set the most you want to stake each NFL week (Wednesday to Tuesday). The app warns you when you get close.
-      <input id="bf-limit" class="ln" inputmode="decimal" placeholder="e.g. 20" style="width:140px"></label></div>
-    <p class="note" id="store-note"></p>
-  </section>
   <section class="view" id="v-match">
     <div class="seg" id="seg-match"></div>
     <div id="match-out"></div>
@@ -142,7 +117,6 @@ table.lg{width:100%;border-collapse:collapse;font-size:14px}table.lg td{padding:
   <button class="tab" role="tab" data-v="teams" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg>Teams</button>
   <button class="tab" role="tab" data-v="players" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>Players</button>
   <button class="tab" role="tab" data-v="match" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l16 16M20 4L4 20"/><circle cx="12" cy="12" r="3"/></svg>Matchups</button>
-  <button class="tab" role="tab" data-v="bets" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Bets</button>
 </nav>
 <script>
 {
@@ -400,13 +374,13 @@ function weekView() {
   const qbCount = {}; P.filter(p => roles.qb(p) && !(p.inj && p.inj[0] === 'O')).forEach(p => qbCount[p.t] = (qbCount[p.t] || 0) + 1);
   const rowsH = pool.map(p => {
     const o = opp[p.t].o, pr = proj(p, o, true), at = (opp[p.t].home ? 'vs ' : '@ ') + o;
-    const key = `${cat}|${p.n}`, track = `<button class="trk" data-desc="${p.n} ${{ td: 'anytime TD', qb: 'passing yards', rush: 'rushing yards', rec: 'receiving yards' }[cat]}${store[key] ? ' ' + (cat === 'td' ? '' : 'over ' + store[key]) : ''} (${at})" data-type="${{ td: 'Anytime TD', qb: 'Passing yards', rush: 'Rushing yards', rec: 'Receiving yards' }[cat]}" data-odds="${cat === 'td' ? (store[key] || '') : ''}">Track bet</button>`;
+    const key = `${cat}|${p.n}`;
     const tt = imp(p.t) ? ` · team total ${imp(p.t)}` : '';
     if (cat === 'td') return [pr.tdP, `<div class="mrow"><div class="who">${p.n} <i>${p.t} ${p.pos} ${at}</i></div>
       <div class="proj"><span class="num">${Math.round(pr.tdP * 100)}%</span><small>fair ${pr.tdP > .01 ? f1(1 / pr.tdP) : '-'}</small></div>
       <div class="sub">${(p.rTD || 0) + (p.recTD || 0)} TDs in ${p.gp}${tt} · ${gtag(p.pos === 'WR' || p.pos === 'TE' ? fac(o, 'ptd') : fac(o, 'rtd'))} ${injTag(p)}</div>
       <div class="sub">${formHTML(p, 'td', 0)}</div>
-      <div class="sub"><input class="ln" inputmode="text" placeholder="Odds" aria-label="Bookie odds for ${p.n}" data-key="${key}" value="${store[key] || ''}"> ${tdValue(pr.tdP, key)} ${track}</div></div>`];
+      <div class="sub"><input class="ln" inputmode="text" placeholder="Odds" aria-label="Bookie odds for ${p.n}" data-key="${key}" value="${store[key] || ''}"> ${tdValue(pr.tdP, key)} </div></div>`];
     const m = { qb: ['passYds', p.pYds / p.gp, fac(o, 'py')], rush: ['rushYds', p.rYds / p.gp, fac(o, 'ry')], rec: ['recYds', p.recYds / p.gp, pr.recF] }[cat];
     const extra = cat === 'qb' ? ` · ${f1(pr.passTD)} TDs proj (${Math.round(pois(pr.passTD, 2) * 100)}% for 2+)${qbCount[p.t] > 1 ? ' · <b>check starter</b>' : ''}` : '';
     const line = parseFloat(store[key]);
@@ -414,7 +388,7 @@ function weekView() {
       <div class="proj"><span class="num">${f1(pr[m[0]])}</span><small>avg ${f1(m[1])}</small></div>
       <div class="sub">${gtag(m[2])}${extra}${tt}${windy(p.t) && cat !== 'rush' ? ' · <span class="warn">wind</span>' : ''} ${injTag(p)}</div>
       <div class="sub">${formHTML(p, STATKEY[cat], m[1])}</div>
-      <div class="sub"><input class="ln" inputmode="decimal" placeholder="Line" aria-label="Bookie line for ${p.n}" data-key="${key}" value="${store[key] || ''}"> ${lean(pr[m[0]], key)} ${hitHTML(p, STATKEY[cat], line)} ${track}</div></div>`];
+      <div class="sub"><input class="ln" inputmode="decimal" placeholder="Line" aria-label="Bookie line for ${p.n}" data-key="${key}" value="${store[key] || ''}"> ${lean(pr[m[0]], key)} ${hitHTML(p, STATKEY[cat], line)} </div></div>`];
   }).sort((a, b) => b[0] - a[0]).map(r => r[1]).join('');
   const help = { td: 'Chance of an anytime TD. Type the bookie price (6/4, 2.5 or +150) to see if it is value.',
     qb: 'Projected passing yards. Type the bookie line for an over/under lean and how often he has gone over it.',
@@ -436,8 +410,6 @@ $('#match-out').addEventListener('change', e => {
 $('#match-out').addEventListener('click', e => {
   const g = e.target.closest('.game');
   if (g && mk === 'week') { gsel = gsel === g.dataset.g ? 'all' : g.dataset.g; weekView(); return; }
-  const b = e.target.closest('.trk'); if (!b) return;
-  openBetForm({ desc: b.dataset.desc, type: b.dataset.type, odds: b.dataset.odds });
 });
 let fP = null, fO = null;
 function finder() {
@@ -520,96 +492,7 @@ function matchView(k) { mk = k; k === 'top' ? topView() : k === 'week' ? weekVie
 seg($('#seg-match'), MSEG, 'top', matchView);
 matchView('top');
 
-/* ---------- bet tracker ---------- */
-const TYPES = ['Anytime TD', 'Passing yards', 'Rushing yards', 'Receiving yards', 'Receptions', 'Spread', 'Game total', 'Multi / acca', 'Other'];
-let bets = [], limit = null, col = null, metaRef = null, mode = 'local', armed = null, broken = false;
-try { bets = JSON.parse(localStorage.getItem('ge-bets') || '[]'); limit = JSON.parse(localStorage.getItem('ge-limit') || 'null'); } catch (e) {}
-const money = v => (v < 0 ? '-£' : '£') + Math.abs(v).toFixed(2);
-const weekStart = () => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 4) % 7)); return d.getTime(); }; // since Wednesday
-const ret = b => b.status === 'won' ? b.stake * b.odds : b.status === 'void' ? b.stake : 0;
-function renderBets() {
-  const settled = bets.filter(b => b.status !== 'open');
-  const staked = settled.reduce((s, b) => s + b.stake, 0), back = settled.reduce((s, b) => s + ret(b), 0), pl = back - staked;
-  const wins = settled.filter(b => b.status === 'won').length, decided = settled.filter(b => b.status !== 'void').length;
-  const wk = bets.filter(b => b.ts >= weekStart()).reduce((s, b) => s + b.stake, 0);
-  const byType = TYPES.map(ty => { const s = settled.filter(b => b.type === ty); if (!s.length) return null; const st = s.reduce((a, b) => a + b.stake, 0), r = s.reduce((a, b) => a + ret(b), 0); return [ty, s.length, r - st, st ? (r - st) / st * 100 : 0]; }).filter(Boolean);
-  const pct = limit ? Math.min(100, wk / limit * 100) : 0;
-  $('#bets-sum').innerHTML = `<div class="big" style="margin-top:0">
-    <div><span class="num ${pl > 0 ? 'pos' : pl < 0 ? 'neg' : ''}">${money(pl)}</span><small>profit / loss on settled bets</small></div>
-    <div><span class="num">${staked ? Math.round(pl / staked * 100) + '%' : '-'}</span><small>return on stakes (ROI)</small></div>
-    <div><span class="num">${decided ? Math.round(wins / decided * 100) + '%' : '-'}</span><small>win rate · ${wins} of ${decided}</small></div>
-    <div><span class="num">${money(wk)}</span><small>staked this NFL week${limit ? ` of ${money(limit)} limit` : ''}</small>${limit ? `<div class="bar"><i style="width:${pct}%;background:${wk > limit ? 'var(--bad)' : wk > limit * .8 ? 'var(--flag)' : 'var(--good)'}"></i></div>` : ''}</div></div>
-    ${limit && wk > limit ? `<p class="warnbox">You're over your weekly limit of ${money(limit)}.</p>` : ''}
-    ${byType.length ? `<h3 style="margin-top:14px">By bet type</h3><ol>${byType.sort((a, b) => b[2] - a[2]).map(([ty, n, p, roi], i) => row(i + 1, ty, n + ' bets', `<span class="${p >= 0 ? 'pos' : 'neg'}">${money(p)}</span> <span style="font-size:14px;color:var(--mute)">${Math.round(roi)}%</span>`)).join('')}</ol>` : ''}`;
-  const list = bets.slice().sort((a, b) => (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1) || b.ts - a.ts);
-  $('#bets-list').innerHTML = list.length ? list.map(b => `<div class="mrow"><div class="who">${esc(b.desc)} <i>${b.type} · ${new Date(b.ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</i></div>
-    <div class="proj"><span class="num" style="font-size:20px">${money(b.stake)}</span><small>@ ${(+b.odds).toFixed(2)}${b.status === 'open' ? ` · returns ${money(b.stake * b.odds)}` : ''}</small></div>
-    <div class="sub">${b.status === 'open' ? `<button class="res" data-id="${b.id}" data-s="won">Won</button><button class="res" data-id="${b.id}" data-s="lost">Lost</button><button class="res" data-id="${b.id}" data-s="void">Void</button>`
-      : `<span class="tag ${b.status === 'won' ? 'g5' : b.status === 'lost' ? 'g1' : ''}">${b.status === 'won' ? 'Won ' + money(ret(b) - b.stake) : b.status === 'lost' ? 'Lost' : 'Void'}</span><button class="res" data-id="${b.id}" data-s="open">Reopen</button>`}
-      <button class="res del" data-id="${b.id}" data-s="del">${armed === b.id ? 'Tap again to delete' : 'Delete'}</button></div></div>`).join('') : '<p class="note">No bets yet. Add one above, or tap "Track bet" on any player in Matchups.</p>';
-  $('#store-note').textContent = mode === 'db' ? 'Your bets are saved to your account, so they show up on any device you open this on.' : 'Your bets are saved in this browser on this device.';
-}
-const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-function persistLocal() { try { localStorage.setItem('ge-bets', JSON.stringify(bets)); localStorage.setItem('ge-limit', JSON.stringify(limit)); } catch (e) {} }
-async function saveBet(b) {
-  if (mode === 'db') { try { await col.doc(b.id).set(b); return; } catch (e) { mode = 'local'; broken = true; } }
-  const i = bets.findIndex(x => x.id === b.id); i >= 0 ? bets[i] = b : bets.push(b); persistLocal(); renderBets();
-}
-async function delBet(id) {
-  if (mode === 'db') { try { await col.doc(id).delete(); return; } catch (e) { mode = 'local'; broken = true; } }
-  bets = bets.filter(b => b.id !== id); persistLocal(); renderBets();
-}
-function openBetForm(pre) {
-  go('bets');
-  $('#bf-desc').value = pre.desc || ''; $('#bf-type').value = pre.type || 'Other'; $('#bf-odds').value = pre.odds || ''; $('#bf-stake').focus();
-}
-$('#bf-type').innerHTML = TYPES.map(t => `<option>${t}</option>`).join('');
-$('#bet-form').addEventListener('submit', async e => {
-  e.preventDefault();
-  const odds = parseOdds($('#bf-odds').value), stake = parseFloat($('#bf-stake').value), desc = $('#bf-desc').value.trim();
-  if (!desc || !(stake > 0) || !odds) { $('#bf-msg').textContent = 'Add what the bet is, a stake and the odds (like 6/4, 2.5 or +150).'; return; }
-  $('#bf-msg').textContent = '';
-  const b = { id: 'b' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ts: Date.now(), desc, type: $('#bf-type').value, stake: Math.round(stake * 100) / 100, odds: Math.round(odds * 1000) / 1000, status: 'open' };
-  e.target.reset(); await saveBet(b);
-});
-$('#bf-limit').addEventListener('change', async e => {
-  const v = parseFloat(e.target.value); limit = v > 0 ? v : null;
-  if (mode === 'db') { try { await metaRef.set({ limit }); } catch (err) {} } else persistLocal();
-  renderBets();
-});
-$('#bets-list').addEventListener('click', async e => {
-  const b = e.target.closest('.res'); if (!b) return;
-  const id = b.dataset.id, s = b.dataset.s;
-  if (s === 'del') { if (armed !== id) { armed = id; renderBets(); return; } armed = null; await delBet(id); return; }
-  const bet = bets.find(x => x.id === id); if (bet) await saveBet(Object.assign({}, bet, { status: s }));
-});
-renderBets();
-if (limit) $('#bf-limit').value = limit;
-(async () => {
-  try {
-    if (!window.claude || !claude.use) return;
-    const [db, user] = await Promise.all([claude.use('db'), claude.use('user')]);
-    const uid = user && await user.id();
-    if (!db || !uid) return;
-    metaRef = db.doc('data/users/' + uid + '/tracker');
-    col = metaRef.collection('bets');
-    const local = bets.slice();
-    col.onSnapshot(async snap => {
-      if (broken) return;
-      if (mode !== 'db') {
-        mode = 'db';
-        const have = new Set(snap.docs.map(d => d.id));
-        for (const b of local) if (!have.has(b.id)) { try { await col.doc(b.id).set(b); } catch (e) { broken = true; break; } } // move any bets saved on this device
-        if (broken) { mode = 'local'; renderBets(); return; } // this viewer can't save to the account: keep bets on this device
-      }
-      bets = snap.docs.map(d => d.data()); renderBets();
-    }, () => { mode = 'local'; renderBets(); });
-    const m = await metaRef.get();
-    if (m.exists && m.data().limit) { limit = m.data().limit; $('#bf-limit').value = limit; renderBets(); }
-  } catch (e) { mode = 'local'; }
-})();
-
-const h = location.hash.slice(1); if (['teams', 'players', 'match', 'bets'].includes(h)) go(h);
+const h = location.hash.slice(1); if (['teams', 'players', 'match'].includes(h)) go(h);
 }
 </script>
 <script>if ("serviceWorker" in navigator && location.hostname.endsWith("github.io")) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
