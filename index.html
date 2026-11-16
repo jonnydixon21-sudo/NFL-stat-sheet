@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>NFL Stat Sheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE: a bettor's matchday tool - quick, confident, numbers first
+   IDEA: the stadium scoreboard and the chalked yard lines of the turf
+   PICTURE: striped turf header band; every list reads like a scoreboard row
+   COLOUR and TYPE: turf green dominant, chalk white support, penalty-flag yellow accent; Saira Condensed + Barlow
+   LAYOUT: phone app - header band, segmented controls, stacked stat cards, fixed bottom tab bar */
+:root{color-scheme:light dark;
+--bg:light-dark(#eef2ec,#09130d);--card:light-dark(#ffffff,#112118);--ink:light-dark(#0d1a12,#eaf3ec);
+--mute:light-dark(#5b6b60,#93a89a);--line:light-dark(#dbe3dc,#1f3427);--turf:#0f6b3a;--turf2:#0b5a30;
+--flag:#f5c400;--good:light-dark(#0f7a40,#43d17f);--bad:light-dark(#c2271b,#ff6b5e);--chip:light-dark(#e3eae4,#18291f)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 Barlow,system-ui,sans-serif;overflow-x:clip;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+h1,h2,h3,.num,.tab,.seg button{font-family:"Saira Condensed",Barlow,sans-serif}
+header{background:repeating-linear-gradient(90deg,var(--turf) 0 46px,var(--turf2) 46px 92px);color:#fff;position:relative;
+ padding:calc(18px + env(safe-area-inset-top)) max(4vw,16px) 18px}
+header::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 45px,rgba(255,255,255,.35) 45px 47px);pointer-events:none;mask:linear-gradient(#000 0 20%,transparent 20% 80%,#000 80%)}
+header h1{margin:0;font-size:clamp(32px,8vw,46px);line-height:1;font-weight:800;letter-spacing:.5px}
+header h1 b{color:var(--flag)}
+header p{margin:6px 0 0;font-size:14px;opacity:.9;position:relative;z-index:1}
+main{max-width:1100px;margin:0 auto;padding:14px max(3vw,12px)}
+.seg{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none}
+.seg button{flex:0 0 auto;border:0;background:var(--chip);color:var(--ink);font-size:17px;font-weight:700;padding:0 16px;height:40px;border-radius:20px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--turf);color:#fff}
+.seg.small button{font-size:15px;height:36px;padding:0 13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.card h3{margin:0 0 8px;font-size:20px;line-height:1.1;display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.card h3 small{font-family:Barlow,system-ui,sans-serif;font-size:13px;color:var(--mute);font-weight:500}
+.duo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.duo h4{margin:0 0 4px;font-size:13px;font-weight:600}
+.duo .b h4{color:var(--good)}.duo .w h4{color:var(--bad)}
+ol{list-style:none;margin:0;padding:0}
+li.r{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:6px;align-items:baseline;padding:4px 0;border-top:1px solid var(--line);font-size:15px}
+li.r:first-child{border-top:0}
+li.r .k{color:var(--mute);font-size:13px}
+li.r .num{font-size:18px;font-weight:700;white-space:nowrap}
+li.r .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+li.r .nm i{font-style:normal;color:var(--mute);font-size:13px;margin-left:4px}
+.more{margin-top:6px;border:0;background:none;color:var(--good);font:600 14px Barlow,system-ui,sans-serif;padding:8px 0;cursor:pointer;min-height:36px}
+.note{font-size:13px;color:var(--mute);margin:10px 2px}
+.search{width:100%;height:44px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:16px Barlow,system-ui,sans-serif;padding:0 12px;margin-bottom:10px}
+select,input.ln{height:44px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:16px Barlow,system-ui,sans-serif;padding:0 10px}
+:focus-visible{outline:3px solid var(--flag);outline-offset:2px}
+.mrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;padding:10px 0;border-top:1px solid var(--line)}
+.mrow:first-child{border-top:0}
+.mrow .who{font-weight:600}.mrow .who i{font-style:normal;color:var(--mute);font-weight:500;font-size:13px}
+.mrow .proj{text-align:right}.mrow .proj .num{font-size:24px;font-weight:800;line-height:1}
+.mrow .proj small{display:block;font-size:12px;color:var(--mute)}
+.mrow .sub{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font-size:13px;color:var(--mute)}
+.tag{display:inline-block;font:700 12px Barlow,system-ui,sans-serif;padding:2px 8px;border-radius:10px;background:var(--chip);color:var(--ink)}
+.tag.g5{background:#0f7a40;color:#fff}.tag.g4{background:#7ccf9a;color:#0d1a12}.tag.g2{background:#f3a59d;color:#3a0b06}.tag.g1{background:#c2271b;color:#fff}
+.tag.ov{background:var(--flag);color:#1a1400}.tag.un{background:#2b4cc2;color:#fff}
+.mrow input.ln{width:92px;height:36px;font-size:16px}
+.big{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:10px}
+.big div{background:var(--chip);border-radius:12px;padding:10px}
+.big .num{font-size:30px;font-weight:800;line-height:1;display:block}
+.big small{font-size:13px;color:var(--mute)}
+.pick{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-bottom:6px}
+.pick label{font-size:13px;color:var(--mute);display:grid;gap:4px}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(4,1fr);background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:5}
+.tab{border:0;background:none;color:var(--mute);font-size:15px;font-weight:700;height:64px;display:grid;place-items:center;gap:0;cursor:pointer;padding:6px 0}
+.tab svg{width:24px;height:24px}
+.tab[aria-selected=true]{color:var(--turf)}
+:root[data-theme=dark] .tab[aria-selected=true]{color:#43d17f}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .tab[aria-selected=true]{color:#43d17f}}
+.view{display:none}.view.on{display:block;animation:in .2s ease}
+@keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.view.on{animation:none}}
+.pickrow{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;align-items:center;padding:12px 0;border-top:1px solid var(--line);cursor:pointer}.pickrow:first-child{border-top:0}
+.pickrow .rk{font:800 26px "Saira Condensed",Barlow,sans-serif;color:var(--mute);text-align:center}.pickrow .who{font-weight:600;font-size:17px}
+.pct{font:800 34px/1 "Saira Condensed",Barlow,sans-serif;text-align:right;color:var(--good)}.pct small{display:block;font:500 12px Barlow,system-ui,sans-serif;color:var(--mute);margin-top:2px}
+.games{padding:4px 14px}.games summary{cursor:pointer;font-weight:600;padding:10px 0;min-height:44px;display:flex;align-items:center}.game{padding:8px 0;border-top:1px solid var(--line);cursor:pointer}.game:first-child{border-top:0}
+.game i{font-style:normal;color:var(--mute);font-size:13px}.gsub{font-size:13px;color:var(--mute)}
+.warn{color:var(--bad);font-weight:600}.form{font-size:13px}.form b{display:inline-block;min-width:30px;text-align:center;background:var(--chip);border-radius:6px;padding:0 5px;margin-right:2px;color:var(--ink);font-weight:600}
+.up{color:var(--good);font-weight:700;font-size:13px}.dn{color:var(--bad);font-weight:700;font-size:13px}
+.trk,.res{border:1px solid var(--line);background:var(--card);color:var(--ink);font:600 13px Barlow,system-ui,sans-serif;height:36px;padding:0 12px;border-radius:18px;cursor:pointer}
+.res{margin-right:6px}.res.del{color:var(--bad)}
+.pos{color:var(--good)}.neg{color:var(--bad)}
+.bar{height:6px;background:var(--line);border-radius:3px;margin-top:6px;overflow:hidden}.bar i{display:block;height:100%}
+.warnbox{background:var(--bad);color:#fff;border-radius:10px;padding:8px 12px;font-weight:600;margin:10px 0 0}
+form.bf{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+form.bf label{font-size:13px;color:var(--mute);display:grid;gap:4px}form.bf .full{grid-column:1/-1}
+form.bf input,form.bf select{width:100%}
+.go{height:44px;border:0;border-radius:10px;background:var(--turf);color:#fff;font:700 17px "Saira Condensed",Barlow,sans-serif;cursor:pointer}
+table.lg{width:100%;border-collapse:collapse;font-size:14px}table.lg td{padding:6px 4px;border-top:1px solid var(--line)}table.lg td:first-child{color:var(--mute);white-space:nowrap;width:48px}
+@media (max-width:380px){.duo{gap:8px}li.r{font-size:14px}li.r .num{font-size:16px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>NFL Stat <b>Sheet</b></h1>
+  <p id="asof">2026 NFL season</p>
+</header>
+<main>
+  <section class="view on" id="v-teams">
+    <div class="seg" id="seg-teams"></div>
+    <div class="grid" id="teams-out"></div>
+    <p class="note">Green = best 5, red = worst 5. Per-game figures adjust for teams that have played 8 vs 9 games.</p>
+  </section>
+  <section class="view" id="v-players">
+    <div class="seg" id="seg-players"></div>
+    <input class="search" id="psearch" type="search" placeholder="Search any player or team (e.g. Gibbs, DET)" aria-label="Search players">
+    <div id="psearch-out"></div>
+    <div class="grid" id="players-out"></div>
+  </section>
+  <section class="view" id="v-bets">
+    <div class="card"><h3>Add a bet</h3>
+      <form class="bf" id="bet-form" novalidate>
+        <label class="full">Bet<input id="bf-desc" class="search" style="margin:0" placeholder="e.g. Gibbs anytime TD"></label>
+        <label>Type<select id="bf-type"></select></label>
+        <label>Stake (£)<input id="bf-stake" class="ln" inputmode="decimal" placeholder="5"></label>
+        <label>Odds<input id="bf-odds" class="ln" inputmode="text" placeholder="6/4 or 2.5"></label>
+        <label>&nbsp;<button class="go" type="submit">Add bet</button></label>
+        <p class="note full" id="bf-msg" style="margin:0;color:var(--bad)"></p>
+      </form></div>
+    <div class="card" style="margin-top:12px" id="bets-sum"></div>
+    <div class="card" style="margin-top:12px"><h3>Your bets</h3><div id="bets-list"></div></div>
+    <div class="card" style="margin-top:12px"><h3>Weekly stake limit</h3>
+      <label class="note" style="display:grid;gap:4px;margin:0">Set the most you want to stake each NFL week (Wednesday to Tuesday). The app warns you when you get close.
+      <input id="bf-limit" class="ln" inputmode="decimal" placeholder="e.g. 20" style="width:140px"></label></div>
+    <p class="note" id="store-note"></p>
+  </section>
+  <section class="view" id="v-match">
+    <div class="seg" id="seg-match"></div>
+    <div id="match-out"></div>
+  </section>
+</main>
+<nav class="tabs" role="tablist">
+  <button class="tab" role="tab" data-v="teams" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg>Teams</button>
+  <button class="tab" role="tab" data-v="players" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>Players</button>
+  <button class="tab" role="tab" data-v="match" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l16 16M20 4L4 20"/><circle cx="12" cy="12" r="3"/></svg>Matchups</button>
+  <button class="tab" role="tab" data-v="bets" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Bets</button>
+</nav>
+<script>
+{
+const D = {"asOf":"Week 9 (Mon 9 Nov 2026)","week":11,"logWeeks":[5,7,8,9],"teams":[{"ab":"BUF","name":"Buffalo Bills","nick":"Bills","w":7,"l":1,"t":0,"gp":8,"pf":256,"pa":187,"dpAtt":300,"dpYA":6.7,"dpYds":2022,"dpTD":15,"dINT":6,"dRate":89.3,"dSck":17,"drAtt":189,"drYds":733,"drYPC":3.9,"drTD":7,"opAtt":236,"opYA":8.6,"opYds":2027,"opTD":12,"oINT":6,"oRate":99.3,"oSckA":17,"orAtt":261,"orYds":1173,"orYPC":4.5,"orTD":17,"dvp":{"QB":[204.3,1.0],"RB":[95.0,1.0],"WR":[63.0,1.0],"TE":[64.0,0.33]},"dvpG":3},{"ab":"NE","name":"New England Patriots","nick":"Patriots","w":5,"l":4,"t":0,"gp":9,"pf":211,"pa":207,"dpAtt":286,"dpYA":7.9,"dpYds":2256,"dpTD":14,"dINT":5,"dRate":100.2,"dSck":25,"drAtt":225,"drYds":870,"drYPC":3.9,"drTD":8,"opAtt":281,"opYA":8.4,"opYds":2349,"opTD":18,"oINT":11,"oRate":96.2,"oSckA":20,"orAtt":256,"orYds":1079,"orYPC":4.2,"orTD":7,"dvp":{"QB":[283.5,2.0],"RB":[82.2,0.75],"WR":[161.2,1.5],"TE":[53.2,0.5]},"dvpG":4},{"ab":"NYJ","name":"New York Jets","nick":"Jets","w":2,"l":7,"t":0,"gp":9,"pf":182,"pa":223,"dpAtt":270,"dpYA":7.1,"dpYds":1909,"dpTD":16,"dINT":1,"dRate":103.5,"dSck":22,"drAtt":282,"drYds":1152,"drYPC":4.1,"drTD":10,"opAtt":271,"opYA":7.7,"opYds":2078,"opTD":12,"oINT":3,"oRate":100.4,"oSckA":28,"orAtt":231,"orYds":947,"orYPC":4.1,"orTD":5,"dvp":{"QB":[213.0,2.0],"RB":[121.5,1.25],"WR":[81.2,1.0],"TE":[39.5,0.0]},"dvpG":4},{"ab":"MIA","name":"Miami Dolphins","nick":"Dolphins","w":1,"l":7,"t":0,"gp":8,"pf":126,"pa":200,"dpAtt":221,"dpYA":8.0,"dpYds":1797,"dpTD":16,"dINT":5,"dRate":114.0,"dSck":12,"drAtt":236,"drYds":894,"drYPC":3.8,"drTD":6,"opAtt":209,"opYA":6.9,"opYds":1442,"opTD":6,"oINT":6,"oRate":77.1,"oSckA":24,"orAtt":215,"orYds":940,"orYPC":4.4,"orTD":7,"dvp":{"QB":[211.5,2.25],"RB":[122.5,0.5],"WR":[99.2,1.0],"TE":[45.5,1.25]},"dvpG":4},{"ab":"PIT","name":"Pittsburgh Steelers","nick":"Steelers","w":6,"l":2,"t":0,"gp":8,"pf":180,"pa":144,"dpAtt":280,"dpYA":6.9,"dpYds":1936,"dpTD":7,"dINT":7,"dRate":83.3,"dSck":26,"drAtt":185,"drYds":671,"drYPC":3.6,"drTD":4,"opAtt":290,"opYA":6.4,"opYds":1871,"opTD":13,"oINT":6,"oRate":85.6,"oSckA":23,"orAtt":193,"orYds":943,"orYPC":4.9,"orTD":4,"dvp":{"QB":[289.7,0.33],"RB":[87.3,0.0],"WR":[83.0,0.33],"TE":[69.0,0.67]},"dvpG":3},{"ab":"CIN","name":"Cincinnati Bengals","nick":"Bengals","w":6,"l":2,"t":0,"gp":8,"pf":240,"pa":175,"dpAtt":273,"dpYA":7.3,"dpYds":1989,"dpTD":9,"dINT":5,"dRate":88.9,"dSck":23,"drAtt":201,"drYds":1013,"drYPC":5.0,"drTD":8,"opAtt":296,"opYA":8.1,"opYds":2386,"opTD":23,"oINT":6,"oRate":114.8,"oSckA":15,"orAtt":177,"orYds":685,"orYPC":3.9,"orTD":5,"dvp":{"QB":[225.2,1.25],"RB":[93.0,1.0],"WR":[101.5,1.0],"TE":[48.8,0.5]},"dvpG":4},{"ab":"CLE","name":"Cleveland Browns","nick":"Browns","w":5,"l":4,"t":0,"gp":9,"pf":161,"pa":196,"dpAtt":297,"dpYA":6.7,"dpYds":1982,"dpTD":12,"dINT":6,"dRate":84.6,"dSck":26,"drAtt":249,"drYds":1175,"drYPC":4.7,"drTD":8,"opAtt":283,"opYA":7.4,"opYds":2105,"opTD":9,"oINT":3,"oRate":93.7,"oSckA":38,"orAtt":233,"orYds":876,"orYPC":3.8,"orTD":6,"dvp":{"QB":[200.0,0.5],"RB":[149.0,1.75],"WR":[67.8,0.25],"TE":[28.0,0.25]},"dvpG":4},{"ab":"BAL","name":"Baltimore Ravens","nick":"Ravens","w":4,"l":5,"t":0,"gp":9,"pf":189,"pa":236,"dpAtt":287,"dpYA":7.6,"dpYds":2177,"dpTD":12,"dINT":4,"dRate":96.1,"dSck":17,"drAtt":249,"drYds":899,"drYPC":3.6,"drTD":12,"opAtt":247,"opYA":7.5,"opYds":1842,"opTD":10,"oINT":5,"oRate":93.9,"oSckA":23,"orAtt":265,"orYds":1240,"orYPC":4.7,"orTD":11,"dvp":{"QB":[265.8,2.0],"RB":[90.2,0.75],"WR":[150.0,1.0],"TE":[62.2,0.75]},"dvpG":4},{"ab":"JAX","name":"Jacksonville Jaguars","nick":"Jaguars","w":6,"l":2,"t":0,"gp":8,"pf":229,"pa":121,"dpAtt":261,"dpYA":7.3,"dpYds":1907,"dpTD":8,"dINT":11,"dRate":80.1,"dSck":16,"drAtt":194,"drYds":714,"drYPC":3.7,"drTD":5,"opAtt":227,"opYA":8.6,"opYds":1940,"opTD":18,"oINT":4,"oRate":110.8,"oSckA":13,"orAtt":230,"orYds":937,"orYPC":4.1,"orTD":8,"dvp":{"QB":[141.3,0.67],"RB":[50.7,0.67],"WR":[89.0,0.67],"TE":[36.7,0.0]},"dvpG":3},{"ab":"HOU","name":"Houston Texans","nick":"Texans","w":3,"l":5,"t":0,"gp":8,"pf":209,"pa":192,"dpAtt":276,"dpYA":7.4,"dpYds":2056,"dpTD":12,"dINT":4,"dRate":95.3,"dSck":29,"drAtt":209,"drYds":824,"drYPC":3.9,"drTD":9,"opAtt":285,"opYA":7.9,"opYds":2258,"opTD":16,"oINT":2,"oRate":104.1,"oSckA":16,"orAtt":195,"orYds":697,"orYPC":3.6,"orTD":6,"dvp":{"QB":[205.0,0.33],"RB":[133.3,1.0],"WR":[101.7,0.33],"TE":[29.7,0.0]},"dvpG":3},{"ab":"IND","name":"Indianapolis Colts","nick":"Colts","w":2,"l":7,"t":0,"gp":9,"pf":184,"pa":249,"dpAtt":264,"dpYA":8.1,"dpYds":2145,"dpTD":16,"dINT":2,"dRate":104.1,"dSck":19,"drAtt":250,"drYds":1233,"drYPC":4.9,"drTD":9,"opAtt":304,"opYA":5.7,"opYds":1730,"opTD":6,"oINT":10,"oRate":69.1,"oSckA":25,"orAtt":249,"orYds":1037,"orYPC":4.2,"orTD":11,"dvp":{"QB":[232.5,2.25],"RB":[151.5,1.5],"WR":[79.8,0.25],"TE":[33.0,1.0]},"dvpG":4},{"ab":"TEN","name":"Tennessee Titans","nick":"Titans","w":1,"l":7,"t":0,"gp":8,"pf":144,"pa":199,"dpAtt":272,"dpYA":8.0,"dpYds":2182,"dpTD":11,"dINT":8,"dRate":95.9,"dSck":20,"drAtt":239,"drYds":993,"drYPC":4.2,"drTD":10,"opAtt":248,"opYA":6.0,"opYds":1483,"opTD":6,"oINT":5,"oRate":78.8,"oSckA":13,"orAtt":189,"orYds":796,"orYPC":4.2,"orTD":8,"dvp":{"QB":[343.7,2.0],"RB":[122.3,0.67],"WR":[195.7,1.33],"TE":[56.7,0.0]},"dvpG":3},{"ab":"DEN","name":"Denver Broncos","nick":"Broncos","w":7,"l":2,"t":0,"gp":9,"pf":198,"pa":186,"dpAtt":344,"dpYA":6.5,"dpYds":2249,"dpTD":14,"dINT":8,"dRate":83.4,"dSck":26,"drAtt":248,"drYds":1119,"drYPC":4.5,"drTD":6,"opAtt":287,"opYA":6.0,"opYds":1730,"opTD":11,"oINT":4,"oRate":84.7,"oSckA":11,"orAtt":223,"orYds":823,"orYPC":3.7,"orTD":9,"dvp":{"QB":[247.5,2.0],"RB":[116.2,0.5],"WR":[41.0,0.5],"TE":[107.0,1.25]},"dvpG":4},{"ab":"KC","name":"Kansas City Chiefs","nick":"Chiefs","w":6,"l":2,"t":0,"gp":8,"pf":202,"pa":143,"dpAtt":276,"dpYA":6.4,"dpYds":1764,"dpTD":7,"dINT":6,"dRate":79.4,"dSck":14,"drAtt":215,"drYds":780,"drYPC":3.6,"drTD":5,"opAtt":263,"opYA":7.8,"opYds":2037,"opTD":14,"oINT":4,"oRate":101.8,"oSckA":11,"orAtt":217,"orYds":1102,"orYPC":5.1,"orTD":10,"dvp":{"QB":[214.7,1.0],"RB":[120.0,0.67],"WR":[100.0,0.67],"TE":[42.3,0.0]},"dvpG":3},{"ab":"LV","name":"Las Vegas Raiders","nick":"Raiders","w":4,"l":5,"t":0,"gp":9,"pf":238,"pa":268,"dpAtt":279,"dpYA":8.0,"dpYds":2238,"dpTD":20,"dINT":7,"dRate":103.6,"dSck":19,"drAtt":272,"drYds":1361,"drYPC":5.0,"drTD":12,"opAtt":324,"opYA":7.4,"opYds":2401,"opTD":20,"oINT":8,"oRate":97.0,"oSckA":11,"orAtt":222,"orYds":642,"orYPC":2.9,"orTD":5,"dvp":{"QB":[272.8,2.75],"RB":[169.0,1.5],"WR":[148.0,1.5],"TE":[74.8,1.0]},"dvpG":4},{"ab":"LAC","name":"Los Angeles Chargers","nick":"Chargers","w":0,"l":8,"t":0,"gp":8,"pf":121,"pa":219,"dpAtt":233,"dpYA":7.9,"dpYds":1845,"dpTD":13,"dINT":7,"dRate":95.9,"dSck":13,"drAtt":240,"drYds":976,"drYPC":4.1,"drTD":11,"opAtt":243,"opYA":6.6,"opYds":1615,"opTD":7,"oINT":11,"oRate":70.6,"oSckA":31,"orAtt":224,"orYds":916,"orYPC":4.1,"orTD":4,"dvp":{"QB":[221.3,2.33],"RB":[93.3,1.0],"WR":[137.3,2.33],"TE":[32.3,0.0]},"dvpG":3},{"ab":"NYG","name":"New York Giants","nick":"Giants","w":5,"l":2,"t":1,"gp":8,"pf":182,"pa":172,"dpAtt":286,"dpYA":6.2,"dpYds":1763,"dpTD":17,"dINT":8,"dRate":88.1,"dSck":17,"drAtt":211,"drYds":989,"drYPC":4.7,"drTD":7,"opAtt":304,"opYA":7.2,"opYds":2193,"opTD":13,"oINT":7,"oRate":88.3,"oSckA":28,"orAtt":259,"orYds":1013,"orYPC":3.9,"orTD":8,"dvp":{"QB":[173.7,0.67],"RB":[61.7,0.67],"WR":[48.7,0.67],"TE":[51.7,0.0]},"dvpG":3},{"ab":"DAL","name":"Dallas Cowboys","nick":"Cowboys","w":4,"l":5,"t":0,"gp":9,"pf":246,"pa":236,"dpAtt":296,"dpYA":7.2,"dpYds":2133,"dpTD":16,"dINT":4,"dRate":99.1,"dSck":17,"drAtt":266,"drYds":1327,"drYPC":5.0,"drTD":11,"opAtt":336,"opYA":7.1,"opYds":2381,"opTD":16,"oINT":5,"oRate":95.4,"oSckA":14,"orAtt":233,"orYds":932,"orYPC":4.0,"orTD":11,"dvp":{"QB":[221.8,1.5],"RB":[154.8,1.75],"WR":[67.8,0.75],"TE":[29.2,0.0]},"dvpG":4},{"ab":"WAS","name":"Washington Commanders","nick":"Commanders","w":2,"l":5,"t":1,"gp":8,"pf":172,"pa":202,"dpAtt":332,"dpYA":7.0,"dpYds":2341,"dpTD":17,"dINT":6,"dRate":95.5,"dSck":18,"drAtt":209,"drYds":818,"drYPC":3.9,"drTD":7,"opAtt":299,"opYA":6.8,"opYds":2025,"opTD":15,"oINT":3,"oRate":95.0,"oSckA":21,"orAtt":243,"orYds":1051,"orYPC":4.3,"orTD":5,"dvp":{"QB":[255.3,1.33],"RB":[93.7,0.67],"WR":[109.3,0.67],"TE":[56.7,1.33]},"dvpG":3},{"ab":"PHI","name":"Philadelphia Eagles","nick":"Eagles","w":2,"l":7,"t":0,"gp":9,"pf":148,"pa":221,"dpAtt":300,"dpYA":7.2,"dpYds":2150,"dpTD":13,"dINT":3,"dRate":92.2,"dSck":16,"drAtt":276,"drYds":1135,"drYPC":4.1,"drTD":10,"opAtt":303,"opYA":5.7,"opYds":1740,"opTD":10,"oINT":6,"oRate":78.0,"oSckA":30,"orAtt":213,"orYds":797,"orYPC":3.7,"orTD":8,"dvp":{"QB":[239.5,1.75],"RB":[77.8,0.5],"WR":[124.5,1.5],"TE":[53.0,0.25]},"dvpG":4},{"ab":"CHI","name":"Chicago Bears","nick":"Bears","w":7,"l":2,"t":0,"gp":9,"pf":241,"pa":184,"dpAtt":260,"dpYA":8.2,"dpYds":2120,"dpTD":13,"dINT":7,"dRate":93.1,"dSck":26,"drAtt":185,"drYds":820,"drYPC":4.4,"drTD":8,"opAtt":312,"opYA":7.4,"opYds":2310,"opTD":10,"oINT":9,"oRate":88.0,"oSckA":20,"orAtt":303,"orYds":1278,"orYPC":4.2,"orTD":17,"dvp":{"QB":[279.8,1.5],"RB":[104.8,1.25],"WR":[127.0,0.75],"TE":[54.0,0.25]},"dvpG":4},{"ab":"DET","name":"Detroit Lions","nick":"Lions","w":6,"l":2,"t":0,"gp":8,"pf":222,"pa":189,"dpAtt":313,"dpYA":7.2,"dpYds":2265,"dpTD":18,"dINT":6,"dRate":97.5,"dSck":27,"drAtt":184,"drYds":753,"drYPC":4.1,"drTD":6,"opAtt":274,"opYA":7.8,"opYds":2145,"opTD":15,"oINT":2,"oRate":106.5,"oSckA":19,"orAtt":230,"orYds":1022,"orYPC":4.4,"orTD":10,"dvp":{"QB":[226.0,1.75],"RB":[48.8,0.25],"WR":[95.5,0.25],"TE":[53.0,1.0]},"dvpG":4},{"ab":"MIN","name":"Minnesota Vikings","nick":"Vikings","w":6,"l":2,"t":0,"gp":8,"pf":146,"pa":116,"dpAtt":234,"dpYA":6.4,"dpYds":1495,"dpTD":5,"dINT":9,"dRate":67.9,"dSck":29,"drAtt":224,"drYds":951,"drYPC":4.2,"drTD":5,"opAtt":225,"opYA":6.4,"opYds":1437,"opTD":8,"oINT":5,"oRate":82.0,"oSckA":23,"orAtt":211,"orYds":848,"orYPC":4.0,"orTD":3,"dvp":{"QB":[153.5,0.5],"RB":[121.2,1.0],"WR":[42.2,0.25],"TE":[29.5,0.25]},"dvpG":4},{"ab":"GB","name":"Green Bay Packers","nick":"Packers","w":6,"l":3,"t":0,"gp":9,"pf":216,"pa":191,"dpAtt":325,"dpYA":6.4,"dpYds":2087,"dpTD":13,"dINT":13,"dRate":77.6,"dSck":26,"drAtt":244,"drYds":981,"drYPC":4.0,"drTD":11,"opAtt":341,"opYA":7.7,"opYds":2618,"opTD":19,"oINT":6,"oRate":97.9,"oSckA":17,"orAtt":202,"orYds":614,"orYPC":3.0,"orTD":6,"dvp":{"QB":[251.5,1.5],"RB":[125.5,1.0],"WR":[131.0,1.25],"TE":[31.2,0.0]},"dvpG":4},{"ab":"CAR","name":"Carolina Panthers","nick":"Panthers","w":3,"l":5,"t":0,"gp":8,"pf":199,"pa":219,"dpAtt":278,"dpYA":6.4,"dpYds":1774,"dpTD":12,"dINT":5,"dRate":88.3,"dSck":12,"drAtt":231,"drYds":1067,"drYPC":4.6,"drTD":13,"opAtt":313,"opYA":7.2,"opYds":2244,"opTD":16,"oINT":6,"oRate":91.3,"oSckA":26,"orAtt":189,"orYds":810,"orYPC":4.3,"orTD":7,"dvp":{"QB":[196.3,2.0],"RB":[130.0,2.0],"WR":[108.7,1.33],"TE":[63.7,0.67]},"dvpG":3},{"ab":"NO","name":"New Orleans Saints","nick":"Saints","w":3,"l":5,"t":0,"gp":8,"pf":185,"pa":216,"dpAtt":261,"dpYA":7.8,"dpYds":2045,"dpTD":13,"dINT":4,"dRate":99.6,"dSck":23,"drAtt":237,"drYds":1071,"drYPC":4.5,"drTD":11,"opAtt":308,"opYA":6.4,"opYds":1986,"opTD":14,"oINT":6,"oRate":91.2,"oSckA":20,"orAtt":203,"orYds":762,"orYPC":3.8,"orTD":7,"dvp":{"QB":[246.0,1.33],"RB":[129.3,0.33],"WR":[106.0,0.67],"TE":[33.0,0.67]},"dvpG":3},{"ab":"TB","name":"Tampa Bay Buccaneers","nick":"Buccaneers","w":3,"l":6,"t":0,"gp":9,"pf":202,"pa":178,"dpAtt":307,"dpYA":6.6,"dpYds":2040,"dpTD":12,"dINT":16,"dRate":72.7,"dSck":17,"drAtt":201,"drYds":712,"drYPC":3.5,"drTD":3,"opAtt":240,"opYA":5.9,"opYds":1423,"opTD":6,"oINT":9,"oRate":70.2,"oSckA":27,"orAtt":294,"orYds":1475,"orYPC":5.0,"orTD":11,"dvp":{"QB":[220.8,1.0],"RB":[55.2,0.5],"WR":[128.0,0.75],"TE":[61.0,0.25]},"dvpG":4},{"ab":"ATL","name":"Atlanta Falcons","nick":"Falcons","w":3,"l":6,"t":0,"gp":9,"pf":188,"pa":223,"dpAtt":318,"dpYA":6.8,"dpYds":2171,"dpTD":14,"dINT":3,"dRate":96.3,"dSck":20,"drAtt":242,"drYds":1069,"drYPC":4.4,"drTD":10,"opAtt":256,"opYA":6.9,"opYds":1766,"opTD":11,"oINT":12,"oRate":76.4,"oSckA":16,"orAtt":258,"orYds":1235,"orYPC":4.8,"orTD":9,"dvp":{"QB":[190.0,1.5],"RB":[185.5,1.0],"WR":[101.2,1.0],"TE":[45.5,0.0]},"dvpG":4},{"ab":"SF","name":"San Francisco 49ers","nick":"49ers","w":7,"l":1,"t":0,"gp":8,"pf":235,"pa":156,"dpAtt":280,"dpYA":6.4,"dpYds":1783,"dpTD":11,"dINT":6,"dRate":88.7,"dSck":15,"drAtt":194,"drYds":647,"drYPC":3.3,"drTD":4,"opAtt":236,"opYA":8.4,"opYds":1980,"opTD":17,"oINT":5,"oRate":109.8,"oSckA":8,"orAtt":234,"orYds":1082,"orYPC":4.6,"orTD":12,"dvp":{"QB":[208.0,1.67],"RB":[77.0,0.33],"WR":[74.3,0.67],"TE":[71.0,1.0]},"dvpG":3},{"ab":"SEA","name":"Seattle Seahawks","nick":"Seahawks","w":5,"l":4,"t":0,"gp":9,"pf":202,"pa":162,"dpAtt":277,"dpYA":5.5,"dpYds":1519,"dpTD":9,"dINT":8,"dRate":77.3,"dSck":21,"drAtt":233,"drYds":802,"drYPC":3.4,"drTD":7,"opAtt":288,"opYA":7.2,"opYds":2089,"opTD":15,"oINT":9,"oRate":89.3,"oSckA":19,"orAtt":258,"orYds":997,"orYPC":3.9,"orTD":7,"dvp":{"QB":[191.8,0.75],"RB":[66.2,1.0],"WR":[79.0,0.5],"TE":[51.0,0.0]},"dvpG":4},{"ab":"LAR","name":"Los Angeles Rams","nick":"Rams","w":5,"l":4,"t":0,"gp":9,"pf":214,"pa":181,"dpAtt":293,"dpYA":6.4,"dpYds":1882,"dpTD":11,"dINT":7,"dRate":82.3,"dSck":16,"drAtt":236,"drYds":934,"drYPC":4.0,"drTD":4,"opAtt":349,"opYA":6.8,"opYds":2387,"opTD":16,"oINT":9,"oRate":90.5,"oSckA":13,"orAtt":242,"orYds":1128,"orYPC":4.7,"orTD":11,"dvp":{"QB":[259.0,1.0],"RB":[83.8,0.75],"WR":[81.8,0.5],"TE":[59.8,0.25]},"dvpG":4},{"ab":"ARI","name":"Arizona Cardinals","nick":"Cardinals","w":3,"l":6,"t":0,"gp":9,"pf":178,"pa":255,"dpAtt":258,"dpYA":8.0,"dpYds":2076,"dpTD":19,"dINT":3,"dRate":108.9,"dSck":19,"drAtt":262,"drYds":1097,"drYPC":4.2,"drTD":10,"opAtt":359,"opYA":5.8,"opYds":2080,"opTD":13,"oINT":7,"oRate":84.0,"oSckA":23,"orAtt":226,"orYds":924,"orYPC":4.1,"orTD":4,"dvp":{"QB":[215.8,1.5],"RB":[153.2,1.0],"WR":[102.2,0.75],"TE":[30.0,0.5]},"dvpG":4}],"players":[{"n":"Jordan Love","t":"GB","gp":9,"pos":"QB","cmp":215,"pAtt":341,"pYds":2618,"pTD":19,"int_":6,"sk":17,"rate":97.9,"lg":{"5":{"py":367,"ptd":2,"ry":6,"rtd":0},"7":{"py":274,"ptd":2,"ry":0,"rtd":0},"8":{"py":288,"ptd":3,"ry":0,"rtd":0},"9":{"py":372,"ptd":3,"ry":13,"rtd":1}}},{"n":"Joe Burrow","t":"CIN","gp":8,"pos":"QB","cmp":219,"pAtt":296,"pYds":2386,"pTD":23,"int_":6,"sk":15,"rate":114.8,"lg":{"5":{"py":190,"ptd":4,"ry":10,"rtd":0},"7":{"py":292,"ptd":4,"ry":12,"rtd":0},"8":{"py":462,"ptd":5,"ry":10,"rtd":1},"9":{"py":271,"ptd":3,"ry":7,"rtd":1}}},{"n":"Dak Prescott","t":"DAL","gp":9,"pos":"QB","cmp":218,"pAtt":336,"pYds":2381,"pTD":16,"int_":5,"sk":14,"rate":95.3,"lg":{"5":{"py":316,"ptd":1,"ry":0,"rtd":0},"7":{"py":212,"ptd":3,"ry":8,"rtd":0},"8":{"py":195,"ptd":1,"ry":20,"rtd":1},"9":{"py":335,"ptd":2,"ry":1,"rtd":0}}},{"n":"Matthew Stafford","t":"LAR","gp":9,"pos":"QB","cmp":230,"pAtt":346,"pYds":2374,"pTD":16,"int_":9,"sk":13,"rate":90.6,"lg":{"5":{"py":383,"ptd":3,"ry":0,"rtd":0},"7":{"py":195,"ptd":3,"ry":-3,"rtd":0},"8":{"py":157,"ptd":1,"ry":0,"rtd":0},"9":{"py":228,"ptd":1,"ry":1,"rtd":0}}},{"n":"Kirk Cousins","t":"LV","gp":9,"pos":"QB","cmp":202,"pAtt":315,"pYds":2340,"pTD":20,"int_":8,"sk":11,"rate":97.1,"lg":{"5":{"py":243,"ptd":1,"ry":0,"rtd":0},"7":{"py":295,"ptd":2,"ry":6,"rtd":0},"8":{"py":247,"ptd":3,"ry":3,"rtd":1},"9":{"py":216,"ptd":1,"ry":0,"rtd":1}}},{"n":"Drake Maye","t":"NE","gp":9,"pos":"QB","cmp":178,"pAtt":272,"pYds":2282,"pTD":18,"int_":11,"sk":20,"rate":96.8,"rAtt":47,"rYds":219,"rTD":3,"rLng":26,"rz":6,"lg":{"5":{"py":374,"ptd":4,"ry":25,"rtd":1},"7":{"py":321,"ptd":2,"ry":26,"rtd":1},"8":{"py":199,"ptd":2,"ry":4,"rtd":1},"9":{"py":299,"ptd":3,"ry":3,"rtd":0}}},{"n":"C.J. Stroud","t":"HOU","gp":8,"pos":"QB","cmp":181,"pAtt":282,"pYds":2251,"pTD":16,"int_":2,"sk":16,"rate":104.8,"lg":{"5":{"py":261,"ptd":1,"ry":5,"rtd":1},"7":{"py":153,"ptd":2,"ry":4,"rtd":0},"9":{"py":384,"ptd":5,"ry":20,"rtd":0},"8":"bye"}},{"n":"Bryce Young","t":"CAR","gp":8,"pos":"QB","cmp":186,"pAtt":308,"pYds":2197,"pTD":16,"int_":6,"sk":26,"rate":91.3,"lg":{"7":{"py":163,"ptd":1,"ry":9,"rtd":0},"8":{"py":209,"ptd":1,"ry":0,"rtd":0},"9":{"py":276,"ptd":3,"ry":13,"rtd":0},"5":"bye"}},{"n":"Jared Goff","t":"DET","gp":8,"pos":"QB","cmp":185,"pAtt":273,"pYds":2134,"pTD":15,"int_":2,"sk":19,"rate":106.4,"lg":{"5":{"py":271,"ptd":3,"ry":1,"rtd":1},"7":{"py":303,"ptd":2,"ry":-1,"rtd":0},"8":{"py":176,"ptd":1,"ry":0,"rtd":0},"9":{"py":170,"ptd":0,"ry":5,"rtd":0}}},{"n":"Geno Smith","t":"NYJ","gp":9,"pos":"QB","cmp":183,"pAtt":271,"pYds":2078,"pTD":12,"int_":3,"sk":28,"rate":100.5,"lg":{"5":{"py":182,"ptd":1,"ry":7,"rtd":0},"7":{"py":287,"ptd":3,"ry":0,"rtd":0},"8":{"py":290,"ptd":2,"ry":4,"rtd":0},"9":{"py":165,"ptd":0,"ry":8,"rtd":0}}},{"n":"Patrick Mahomes II","t":"KC","gp":8,"pos":"QB","cmp":177,"pAtt":263,"pYds":2037,"pTD":14,"int_":4,"sk":11,"rate":101.8,"lg":{"7":{"py":165,"ptd":0,"ry":14,"rtd":0},"8":{"py":321,"ptd":3,"ry":6,"rtd":0},"9":{"py":242,"ptd":2,"ry":8,"rtd":0},"5":"bye"}},{"n":"Josh Allen","t":"BUF","gp":8,"pos":"QB","cmp":156,"pAtt":236,"pYds":2027,"pTD":12,"int_":6,"sk":17,"rate":99.3,"rAtt":61,"rYds":285,"rTD":9,"rLng":22,"rz":17,"lg":{"5":{"py":210,"ptd":1,"ry":121,"rtd":1},"8":{"py":289,"ptd":2,"ry":30,"rtd":1},"9":{"py":234,"ptd":1,"ry":15,"rtd":0},"7":"bye"}},{"n":"Tyler Shough","t":"NO","gp":8,"pos":"QB","cmp":204,"pAtt":308,"pYds":1986,"pTD":14,"int_":6,"sk":20,"rate":91.2,"lg":{"5":{"py":96,"ptd":0,"ry":0,"rtd":0},"7":{"py":278,"ptd":1,"ry":7,"rtd":0},"9":{"py":265,"ptd":1,"ry":51,"rtd":0},"8":"bye"}},{"n":"Brock Purdy","t":"SF","gp":8,"pos":"QB","cmp":163,"pAtt":236,"pYds":1980,"pTD":17,"int_":5,"sk":8,"rate":109.8,"rAtt":39,"rYds":201,"rTD":2,"rLng":35,"rz":8,"lg":{"5":{"py":189,"ptd":2,"ry":6,"rtd":0},"7":{"py":288,"ptd":1,"ry":5,"rtd":0},"9":{"py":232,"ptd":2,"ry":40,"rtd":1},"8":"bye"}},{"n":"Trevor Lawrence","t":"JAX","gp":8,"pos":"QB","cmp":146,"pAtt":224,"pYds":1932,"pTD":18,"int_":4,"sk":13,"rate":111.7,"lg":{"5":{"py":331,"ptd":2,"ry":25,"rtd":0},"8":{"py":210,"ptd":3,"ry":10,"rtd":0},"9":{"py":242,"ptd":1,"ry":-1,"rtd":0},"7":"bye"}},{"n":"Aaron Rodgers","t":"PIT","gp":8,"pos":"QB","cmp":175,"pAtt":288,"pYds":1871,"pTD":13,"int_":6,"sk":23,"rate":86.2,"lg":{"5":{"py":235,"ptd":3,"ry":6,"rtd":0},"7":{"py":212,"ptd":1,"ry":6,"rtd":0},"8":{"py":172,"ptd":0,"ry":0,"rtd":0},"9":"bye"}},{"n":"Deshaun Watson","t":"CLE","gp":8,"pos":"QB","cmp":163,"pAtt":249,"pYds":1806,"pTD":7,"int_":3,"sk":33,"rate":91.2,"rAtt":51,"rYds":217,"rTD":1,"rLng":21,"rz":6,"lg":{"5":{"py":155,"ptd":1,"ry":40,"rtd":0},"7":{"py":308,"ptd":0,"ry":19,"rtd":1},"8":{"py":324,"ptd":0,"ry":2,"rtd":0}}},{"n":"Bo Nix","t":"DEN","gp":9,"pos":"QB","cmp":174,"pAtt":287,"pYds":1730,"pTD":11,"int_":4,"sk":11,"rate":84.7,"lg":{"5":{"py":123,"ptd":1,"ry":10,"rtd":0},"7":{"py":222,"ptd":1,"ry":73,"rtd":1},"8":{"py":222,"ptd":2,"ry":4,"rtd":0},"9":{"py":237,"ptd":2,"ry":2,"rtd":0}}},{"n":"Daniel Jones","t":"IND","gp":9,"pos":"QB","cmp":182,"pAtt":302,"pYds":1722,"pTD":6,"int_":10,"sk":24,"rate":68.9,"lg":{"5":{"py":267,"ptd":0,"ry":4,"rtd":0},"7":{"py":108,"ptd":0,"ry":13,"rtd":0},"8":{"py":144,"ptd":1,"ry":7,"rtd":0},"9":{"py":180,"ptd":1,"ry":11,"rtd":0}}},{"n":"Jacoby Brissett","t":"ARI","gp":8,"pos":"QB","cmp":193,"pAtt":305,"pYds":1719,"pTD":10,"int_":7,"sk":19,"rate":79.7,"lg":{"5":{"py":292,"ptd":3,"ry":19,"rtd":0},"7":{"py":272,"ptd":1,"ry":16,"rtd":0},"8":{"py":119,"ptd":0,"ry":7,"rtd":0}}},{"n":"Justin Herbert","t":"LAC","gp":8,"pos":"QB","cmp":144,"pAtt":235,"pYds":1591,"pTD":6,"int_":11,"sk":31,"rate":70.4,"lg":{"5":{"py":121,"ptd":1,"ry":54,"rtd":0},"8":{"py":257,"ptd":0,"ry":15,"rtd":0},"9":{"py":193,"ptd":1,"ry":7,"rtd":0},"7":"bye"}},{"n":"Caleb Williams","t":"CHI","gp":6,"pos":"QB","cmp":134,"pAtt":195,"pYds":1546,"pTD":8,"int_":5,"sk":14,"rate":95.4,"lg":{"7":{"py":308,"ptd":2,"ry":18,"rtd":0},"8":{"py":247,"ptd":1,"ry":1,"rtd":0},"9":{"py":279,"ptd":2,"ry":16,"rtd":0}}},{"n":"Cam Ward","t":"TEN","gp":8,"pos":"QB","cmp":155,"pAtt":248,"pYds":1483,"pTD":6,"int_":5,"sk":13,"rate":78.7,"lg":{"5":{"py":170,"ptd":0,"ry":2,"rtd":0},"7":{"py":181,"ptd":0,"ry":5,"rtd":0},"8":{"py":304,"ptd":2,"ry":41,"rtd":0},"9":"bye"}},{"n":"Sam Darnold","t":"SEA","gp":7,"pos":"QB","cmp":127,"pAtt":211,"pYds":1478,"pTD":10,"int_":9,"sk":17,"rate":79.5,"lg":{"5":{"py":195,"ptd":1,"ry":5,"rtd":0},"7":{"py":257,"ptd":1,"ry":17,"rtd":0},"8":{"py":188,"ptd":2,"ry":20,"rtd":0}},"inj":["O","Ribs, quad (Week 10 status)"]},{"n":"Michael Penix Jr.","t":"ATL","gp":7,"pos":"QB","cmp":124,"pAtt":199,"pYds":1444,"pTD":10,"int_":6,"sk":9,"rate":88.4,"lg":{"5":{"py":240,"ptd":1,"ry":8,"rtd":0},"7":{"py":213,"ptd":3,"ry":-1,"rtd":0},"8":{"py":125,"ptd":0,"ry":11,"rtd":0},"9":{"py":162,"ptd":1,"ry":50,"rtd":0}}},{"n":"Malik Willis","t":"MIA","gp":8,"pos":"QB","cmp":121,"pAtt":208,"pYds":1396,"pTD":6,"int_":6,"sk":24,"rate":76.1,"rAtt":38,"rYds":232,"rTD":3,"rLng":39,"rz":5,"lg":{"5":{"py":137,"ptd":1,"ry":74,"rtd":1},"7":{"py":208,"ptd":2,"ry":37,"rtd":1},"8":{"py":211,"ptd":2,"ry":2,"rtd":0},"9":{"py":128,"ptd":0,"ry":7,"rtd":0}}},{"n":"Jayden Daniels","t":"WAS","gp":7,"pos":"QB","cmp":115,"pAtt":180,"pYds":1250,"pTD":7,"int_":0,"sk":16,"rate":97.2,"rAtt":42,"rYds":280,"rTD":2,"rLng":38,"rz":6,"lg":{"5":{"py":199,"ptd":0,"ry":103,"rtd":2},"8":{"py":217,"ptd":1,"ry":23,"rtd":0},"9":{"py":274,"ptd":1,"ry":16,"rtd":0},"7":"bye"}},{"n":"Jameis Winston","t":"NYG","gp":7,"pos":"QB","cmp":96,"pAtt":166,"pYds":1028,"pTD":8,"int_":5,"sk":16,"rate":79.6,"lg":{"5":{"py":326,"ptd":3,"ry":27,"rtd":0},"9":{"py":71,"ptd":1,"ry":11,"rtd":0},"8":"bye"}},{"n":"Kyler Murray","t":"MIN","gp":6,"pos":"QB","cmp":100,"pAtt":154,"pYds":1022,"pTD":5,"int_":3,"sk":15,"rate":86.6,"lg":{"5":{"py":229,"ptd":1,"ry":51,"rtd":0},"7":{"py":150,"ptd":1,"ry":39,"rtd":0},"8":{"py":210,"ptd":2,"ry":35,"rtd":0}},"inj":["O","Hamstring (Week 10 status)"]},{"n":"Lamar Jackson","t":"BAL","gp":5,"pos":"QB","cmp":68,"pAtt":97,"pYds":967,"pTD":6,"int_":1,"sk":7,"rate":118.4,"lg":{}},{"n":"Jalen Hurts","t":"PHI","gp":5,"pos":"QB","cmp":89,"pAtt":154,"pYds":933,"pTD":8,"int_":3,"sk":13,"rate":84.7,"lg":{"5":{"py":220,"ptd":1,"ry":2,"rtd":0}}},{"n":"Baker Mayfield","t":"TB","gp":6,"pos":"QB","cmp":86,"pAtt":142,"pYds":922,"pTD":3,"int_":4,"sk":18,"rate":74.9,"lg":{"7":{"py":64,"ptd":1,"ry":1,"rtd":0},"8":{"py":0,"ptd":0,"ry":14,"rtd":0},"9":{"py":243,"ptd":0,"ry":0,"rtd":0}}},{"n":"Tyler Huntley","t":"BAL","gp":5,"pos":"QB","cmp":76,"pAtt":110,"pYds":727,"pTD":4,"int_":1,"sk":11,"rate":95.5,"lg":{"5":{"py":201,"ptd":2,"ry":20,"rtd":1},"7":{"py":298,"ptd":1,"ry":12,"rtd":0}}},{"n":"Tanner McKee","t":"PHI","gp":3,"pos":"QB","cmp":72,"pAtt":114,"pYds":638,"pTD":2,"int_":2,"sk":10,"rate":76.6,"lg":{"7":{"py":211,"ptd":1,"ry":1,"rtd":0},"8":{"py":212,"ptd":0,"ry":25,"rtd":0}}},{"n":"J.J. McCarthy","t":"NYG","gp":4,"pos":"QB","cmp":43,"pAtt":68,"pYds":622,"pTD":1,"int_":1,"sk":9,"rate":91.7,"lg":{"7":{"py":252,"ptd":0,"ry":1,"rtd":0},"9":{"py":127,"ptd":0,"ry":22,"rtd":0},"8":"bye"}},{"n":"Drew Lock","t":"SEA","gp":3,"pos":"QB","cmp":54,"pAtt":76,"pYds":597,"pTD":5,"int_":0,"sk":2,"rate":116.0,"lg":{"9":{"py":175,"ptd":1,"ry":16,"rtd":0}}},{"n":"Jalon Daniels","t":"TB","gp":5,"pos":"QB","cmp":60,"pAtt":98,"pYds":501,"pTD":3,"int_":5,"sk":9,"rate":63.4,"lg":{"5":{"py":189,"ptd":1,"ry":23,"rtd":0}}},{"n":"Carson Wentz","t":"MIN","gp":3,"pos":"QB","cmp":31,"pAtt":64,"pYds":357,"pTD":3,"int_":2,"sk":7,"rate":68.3,"lg":{"9":{"py":81,"ptd":0,"ry":0,"rtd":0}}},{"n":"Bijan Robinson","t":"ATL","gp":9,"pos":"RB","rAtt":169,"rYds":880,"rTD":5,"rLng":59,"rz":29,"lg":{"5":{"ry":86,"rtd":0,"rec":4,"ny":32,"ntd":0},"7":{"ry":63,"rtd":0,"rec":5,"ny":45,"ntd":0},"8":{"ry":76,"rtd":0,"rec":0,"ny":0,"ntd":0},"9":{"ry":100,"rtd":1,"rec":6,"ny":47,"ntd":0}}},{"n":"Kenneth Walker III","t":"KC","gp":8,"pos":"RB","rAtt":159,"rYds":872,"rTD":7,"rLng":76,"rz":33,"lg":{"7":{"ry":36,"rtd":0,"rec":4,"ny":21,"ntd":0},"8":{"ry":69,"rtd":0,"rec":4,"ny":15,"ntd":0},"9":{"ry":102,"rtd":1,"rec":4,"ny":41,"ntd":2},"5":"bye"}},{"n":"Jahmyr Gibbs","t":"DET","gp":8,"pos":"RB","rAtt":177,"rYds":847,"rTD":9,"rLng":30,"rz":43,"lg":{"5":{"ry":151,"rtd":2,"rec":5,"ny":56,"ntd":0},"7":{"ry":116,"rtd":0,"rec":5,"ny":27,"ntd":0},"8":{"ry":153,"rtd":1,"rec":2,"ny":15,"ntd":0},"9":{"ry":74,"rtd":1,"rec":0,"ny":0,"ntd":0}}},{"n":"Bucky Irving","t":"TB","gp":9,"pos":"RB","rAtt":167,"rYds":825,"rTD":7,"rLng":72,"rz":31,"lg":{"5":{"ry":165,"rtd":1,"rec":2,"ny":10,"ntd":1},"7":{"ry":106,"rtd":2,"rec":1,"ny":4,"ntd":0},"8":{"ry":170,"rtd":1,"rec":0,"ny":0,"ntd":0},"9":{"ry":97,"rtd":2,"rec":4,"ny":28,"ntd":0}}},{"n":"James Cook III","t":"BUF","gp":8,"pos":"RB","rAtt":169,"rYds":814,"rTD":8,"rLng":35,"rz":32,"lg":{"5":{"ry":111,"rtd":2,"rec":1,"ny":7,"ntd":0},"8":{"ry":80,"rtd":1,"rec":2,"ny":21,"ntd":0},"9":{"ry":107,"rtd":1,"rec":0,"ny":0,"ntd":0},"7":"bye"}},{"n":"Jaylen Warren","t":"PIT","gp":8,"pos":"RB","rAtt":119,"rYds":704,"rTD":2,"rLng":51,"rz":9,"tgt":36,"rec":25,"recYds":294,"recTD":1,"recLng":80,"rzT":4,"lg":{"5":{"ry":101,"rtd":1,"rec":6,"ny":87,"ntd":1},"7":{"ry":101,"rtd":0,"rec":3,"ny":36,"ntd":0},"8":{"ry":143,"rtd":1,"rec":1,"ny":0,"ntd":0},"9":"bye"}},{"n":"Derrick Henry","t":"BAL","gp":9,"pos":"RB","rAtt":175,"rYds":689,"rTD":8,"rLng":32,"rz":38,"lg":{"5":{"ry":102,"rtd":0,"rec":1,"ny":18,"ntd":1},"8":{"ry":53,"rtd":1,"rec":2,"ny":7,"ntd":0}}},{"n":"Jonathan Taylor","t":"IND","gp":9,"pos":"RB","rAtt":161,"rYds":656,"rTD":8,"rLng":38,"rz":30,"lg":{"5":{"ry":45,"rtd":0,"rec":3,"ny":37,"ntd":0},"7":{"ry":95,"rtd":1,"rec":2,"ny":15,"ntd":0},"8":{"ry":23,"rtd":0,"rec":4,"ny":24,"ntd":0},"9":{"ry":46,"rtd":0,"rec":5,"ny":18,"ntd":0}}},{"n":"Javonte Williams","t":"DAL","gp":9,"pos":"RB","rAtt":154,"rYds":629,"rTD":9,"rLng":34,"rz":37,"lg":{"5":{"ry":45,"rtd":1,"rec":2,"ny":17,"ntd":0},"7":{"ry":155,"rtd":1,"rec":0,"ny":0,"ntd":0},"8":{"ry":56,"rtd":0,"rec":1,"ny":1,"ntd":0},"9":{"ry":101,"rtd":1,"rec":4,"ny":23,"ntd":0}}},{"n":"Chuba Hubbard","t":"CAR","gp":8,"pos":"RB","rAtt":134,"rYds":619,"rTD":5,"rLng":32,"rz":18,"lg":{"7":{"ry":33,"rtd":0,"rec":4,"ny":27,"ntd":0},"8":{"ry":81,"rtd":1,"rec":7,"ny":38,"ntd":0},"9":{"ry":79,"rtd":0,"rec":4,"ny":17,"ntd":0},"5":"bye"}},{"n":"Braelon Allen","t":"NYJ","gp":9,"pos":"RB","rAtt":120,"rYds":598,"rTD":3,"rLng":27,"rz":14,"lg":{"5":{"ry":116,"rtd":1,"rec":1,"ny":0,"ntd":0},"7":{"ry":104,"rtd":0,"rec":6,"ny":30,"ntd":0},"8":{"ry":147,"rtd":1,"rec":2,"ny":6,"ntd":0},"9":{"ry":33,"rtd":0,"rec":2,"ny":21,"ntd":0}}},{"n":"Tony Pollard","t":"TEN","gp":8,"pos":"RB","rAtt":133,"rYds":595,"rTD":6,"rLng":40,"rz":29,"lg":{"5":{"ry":52,"rtd":0,"rec":0,"ny":0,"ntd":0},"7":{"ry":129,"rtd":3,"rec":3,"ny":26,"ntd":0},"8":{"ry":117,"rtd":2,"rec":3,"ny":20,"ntd":0},"9":"bye"}},{"n":"Kyren Williams","t":"LAR","gp":9,"pos":"RB","rAtt":127,"rYds":593,"rTD":6,"rLng":30,"rz":21,"lg":{"5":{"ry":49,"rtd":1,"rec":6,"ny":27,"ntd":0},"7":{"ry":99,"rtd":1,"rec":2,"ny":22,"ntd":0},"8":{"ry":56,"rtd":1,"rec":1,"ny":3,"ntd":0},"9":{"ry":45,"rtd":0,"rec":3,"ny":16,"ntd":0}}},{"n":"D'Andre Swift","t":"CHI","gp":9,"pos":"RB","rAtt":155,"rYds":576,"rTD":10,"rLng":32,"rz":37,"lg":{"5":{"ry":43,"rtd":1,"rec":4,"ny":30,"ntd":0},"7":{"ry":78,"rtd":1,"rec":4,"ny":12,"ntd":0},"8":{"ry":69,"rtd":3,"rec":2,"ny":10,"ntd":0}}},{"n":"Bhayshul Tuten","t":"JAX","gp":8,"pos":"RB","rAtt":122,"rYds":521,"rTD":4,"rLng":39,"rz":19,"lg":{"5":{"ry":72,"rtd":0,"rec":2,"ny":24,"ntd":0},"8":{"ry":104,"rtd":1,"rec":2,"ny":55,"ntd":1},"9":{"ry":29,"rtd":1,"rec":0,"ny":0,"ntd":0},"7":"bye"}},{"n":"Cam Skattebo","t":"NYG","gp":8,"pos":"RB","rAtt":116,"rYds":496,"rTD":4,"rLng":42,"rz":17,"lg":{"5":{"ry":59,"rtd":0,"rec":2,"ny":12,"ntd":0},"7":{"ry":124,"rtd":1,"rec":1,"ny":-3,"ntd":0},"8":"bye"}},{"n":"Aaron Jones Sr.","t":"MIN","gp":8,"pos":"RB","rAtt":115,"rYds":474,"rTD":2,"rLng":20,"rz":11,"lg":{"5":{"ry":113,"rtd":1,"rec":3,"ny":4,"ntd":0},"8":{"ry":22,"rtd":0,"rec":2,"ny":18,"ntd":0}}},{"n":"Ollie Gordon II","t":"MIA","gp":8,"pos":"RB","rAtt":107,"rYds":463,"rTD":4,"rLng":53,"rz":24,"lg":{"5":{"ry":88,"rtd":1,"rec":0,"ny":0,"ntd":0},"7":{"ry":103,"rtd":1,"rec":1,"ny":0,"ntd":0},"8":{"ry":69,"rtd":0,"rec":0,"ny":0,"ntd":0},"9":{"ry":55,"rtd":0,"rec":1,"ny":9,"ntd":0}}},{"n":"Christian McCaffrey","t":"SF","gp":8,"pos":"RB","rAtt":102,"rYds":457,"rTD":9,"rLng":16,"rz":24,"lg":{"5":{"ry":68,"rtd":1,"rec":3,"ny":15,"ntd":0},"7":{"ry":39,"rtd":1,"rec":6,"ny":61,"ntd":0},"9":{"ry":68,"rtd":1,"rec":2,"ny":19,"ntd":1},"8":"bye"}},{"n":"Blake Corum","t":"LAR","gp":9,"pos":"RB","rAtt":86,"rYds":447,"rTD":4,"rLng":23,"rz":10,"lg":{"5":{"ry":19,"rtd":1,"rec":3,"ny":53,"ntd":0},"7":{"ry":93,"rtd":1,"rec":1,"ny":8,"ntd":0},"8":{"ry":73,"rtd":1,"rec":0,"ny":0,"ntd":0},"9":{"ry":58,"rtd":1,"rec":0,"ny":0,"ntd":0}}},{"n":"Emanuel Wilson","t":"SEA","gp":8,"pos":"RB","rAtt":111,"rYds":403,"rTD":3,"rLng":21,"rz":16,"lg":{"5":{"ry":61,"rtd":1,"rec":2,"ny":11,"ntd":0},"7":{"ry":100,"rtd":1,"rec":1,"ny":15,"ntd":0}}},{"n":"Rhamondre Stevenson","t":"NE","gp":9,"pos":"RB","rAtt":102,"rYds":399,"rTD":2,"rLng":24,"rz":10,"lg":{"5":{"ry":64,"rtd":1,"rec":3,"ny":21,"ntd":0},"7":{"ry":22,"rtd":0,"rec":5,"ny":93,"ntd":1},"8":{"ry":82,"rtd":0,"rec":3,"ny":8,"ntd":0},"9":{"ry":32,"rtd":0,"rec":3,"ny":40,"ntd":1}}},{"n":"Chase Brown","t":"CIN","gp":8,"pos":"RB","rAtt":103,"rYds":397,"rTD":1,"rLng":19,"rz":12,"lg":{"5":{"ry":39,"rtd":0,"rec":3,"ny":21,"ntd":0},"7":{"ry":39,"rtd":0,"rec":4,"ny":19,"ntd":0},"8":{"ry":55,"rtd":0,"rec":8,"ny":46,"ntd":0},"9":{"ry":57,"rtd":0,"rec":3,"ny":18,"ntd":0}}},{"n":"Quinshon Judkins","t":"CLE","gp":8,"pos":"RB","rAtt":116,"rYds":385,"rTD":3,"rLng":30,"rz":19,"lg":{"5":{"ry":44,"rtd":0,"rec":3,"ny":6,"ntd":0},"7":{"ry":96,"rtd":2,"rec":1,"ny":8,"ntd":0},"8":{"ry":25,"rtd":0,"rec":2,"ny":24,"ntd":0}}},{"n":"Tyler Allgeier","t":"ARI","gp":9,"pos":"RB","rAtt":89,"rYds":369,"rTD":2,"rLng":63,"rz":15,"lg":{"8":{"ry":147,"rtd":1,"rec":5,"ny":44,"ntd":1},"9":{"ry":46,"rtd":0,"rec":2,"ny":0,"ntd":0}}},{"n":"Omarion Hampton","t":"LAC","gp":8,"pos":"RB","rAtt":102,"rYds":369,"rTD":3,"rLng":32,"rz":16,"lg":{"9":{"ry":60,"rtd":0,"rec":0,"ny":0,"ntd":0},"7":"bye"}},{"n":"Ashton Jeanty","t":"LV","gp":9,"pos":"RB","rAtt":114,"rYds":362,"rTD":1,"rLng":19,"rz":23,"tgt":55,"rec":42,"recYds":371,"recTD":3,"recLng":45,"rzT":10,"lg":{"5":{"ry":27,"rtd":0,"rec":3,"ny":50,"ntd":0},"7":{"ry":15,"rtd":0,"rec":8,"ny":61,"ntd":1},"8":{"ry":9,"rtd":0,"rec":3,"ny":64,"ntd":0},"9":{"ry":25,"rtd":0,"rec":5,"ny":-5,"ntd":0}}},{"n":"Woody Marks","t":"HOU","gp":8,"pos":"RB","rAtt":95,"rYds":341,"rTD":2,"rLng":14,"rz":15,"lg":{"5":{"ry":62,"rtd":0,"rec":4,"ny":23,"ntd":0},"7":{"ry":66,"rtd":0,"rec":1,"ny":15,"ntd":0},"9":{"ry":70,"rtd":0,"rec":1,"ny":4,"ntd":0},"8":"bye"}},{"n":"J.K. Dobbins","t":"DEN","gp":9,"pos":"RB","rAtt":98,"rYds":324,"rTD":3,"rLng":17,"rz":13,"lg":{"5":{"ry":68,"rtd":1,"rec":2,"ny":6,"ntd":0},"7":{"ry":23,"rtd":1,"rec":0,"ny":0,"ntd":0}}},{"n":"Kyle Monangai","t":"CHI","gp":4,"pos":"RB","rAtt":60,"rYds":324,"rTD":3,"rLng":61,"rz":14,"lg":{}},{"n":"Kenny Gainwell","t":"TB","gp":9,"pos":"RB","rAtt":63,"rYds":305,"rTD":0,"rLng":29,"rz":6,"lg":{"5":{"ry":18,"rtd":0,"rec":3,"ny":10,"ntd":0},"7":{"ry":88,"rtd":0,"rec":0,"ny":0,"ntd":0},"8":{"ry":140,"rtd":0,"rec":0,"ny":0,"ntd":0},"9":{"ry":16,"rtd":0,"rec":3,"ny":60,"ntd":0}}},{"n":"Kaelon Black","t":"SF","gp":8,"pos":"RB","rAtt":68,"rYds":303,"rTD":1,"rLng":30,"rz":12,"lg":{"7":{"ry":63,"rtd":1,"rec":1,"ny":-4,"ntd":0},"9":{"ry":70,"rtd":0,"rec":0,"ny":0,"ntd":0},"8":"bye"}},{"n":"Saquon Barkley","t":"PHI","gp":7,"pos":"RB","rAtt":69,"rYds":296,"rTD":3,"rLng":42,"rz":12,"lg":{"7":{"ry":62,"rtd":1,"rec":2,"ny":9,"ntd":0},"8":{"ry":30,"rtd":1,"rec":1,"ny":24,"ntd":0},"9":{"ry":22,"rtd":1,"rec":0,"ny":0,"ntd":0}}},{"n":"Rachaad White","t":"WAS","gp":8,"pos":"RB","rAtt":65,"rYds":275,"rTD":1,"rLng":33,"rz":7,"lg":{"8":{"ry":55,"rtd":1,"rec":2,"ny":5,"ntd":0},"9":{"ry":28,"rtd":0,"rec":2,"ny":41,"ntd":0},"7":"bye"}},{"n":"Mike Washington Jr.","t":"LV","gp":9,"pos":"RB","rAtt":71,"rYds":275,"rTD":1,"rLng":36,"rz":17,"lg":{"8":{"ry":83,"rtd":0,"rec":0,"ny":0,"ntd":0}}},{"n":"Jeremiyah Love","t":"ARI","gp":6,"pos":"RB","rAtt":76,"rYds":268,"rTD":1,"rLng":18,"rz":13,"lg":{}},{"n":"Corey Kiner","t":"NE","gp":9,"pos":"RB","rAtt":50,"rYds":244,"rTD":1,"rLng":32,"rz":8,"lg":{"5":{"ry":52,"rtd":0,"rec":1,"ny":7,"ntd":0},"9":{"ry":55,"rtd":1,"rec":0,"ny":0,"ntd":0}}},{"n":"Justice Hill","t":"BAL","gp":9,"pos":"RB","rAtt":33,"rYds":240,"rTD":1,"rLng":65,"rz":0,"lg":{"5":{"ry":73,"rtd":0,"rec":2,"ny":5,"ntd":0},"8":{"ry":15,"rtd":0,"rec":4,"ny":20,"ntd":0},"9":{"ry":85,"rtd":1,"rec":3,"ny":7,"ntd":0}}},{"n":"Jacory Croskey-Merritt","t":"WAS","gp":5,"pos":"RB","rAtt":67,"rYds":239,"rTD":2,"rLng":33,"rz":6,"lg":{"5":{"ry":82,"rtd":1,"rec":0,"ny":0,"ntd":0},"7":"bye"}},{"n":"Chris Rodriguez Jr.","t":"JAX","gp":8,"pos":"RB","rAtt":55,"rYds":228,"rTD":4,"rLng":28,"rz":12,"lg":{"8":{"ry":41,"rtd":1,"rec":1,"ny":17,"ntd":0},"9":{"ry":19,"rtd":1,"rec":2,"ny":13,"ntd":0},"7":"bye"}},{"n":"Breece Hall","t":"NYJ","gp":4,"pos":"RB","rAtt":66,"rYds":224,"rTD":1,"rLng":16,"rz":10,"lg":{"9":{"ry":61,"rtd":0,"rec":3,"ny":26,"ntd":0}}},{"n":"Brian Robinson Jr.","t":"ATL","gp":6,"pos":"RB","rAtt":53,"rYds":211,"rTD":4,"rLng":16,"rz":6,"lg":{}},{"n":"Seth McGowan","t":"IND","gp":9,"pos":"RB","rAtt":43,"rYds":208,"rTD":1,"rLng":36,"rz":6,"lg":{"9":{"ry":45,"rtd":1,"rec":1,"ny":-3,"ntd":0}}},{"n":"TreVeyon Henderson","t":"NE","gp":6,"pos":"RB","rAtt":52,"rYds":203,"rTD":1,"rLng":39,"rz":2,"lg":{}},{"n":"Jaxon Smith-Njigba","t":"SEA","gp":9,"pos":"WR","tgt":99,"rec":71,"recYds":1036,"recTD":9,"recLng":82,"rzT":13,"lg":{"5":{"rec":5,"ny":102,"ntd":1,"ry":16,"rtd":0},"7":{"rec":9,"ny":150,"ntd":1,"ry":13,"rtd":0},"8":{"rec":6,"ny":118,"ntd":1,"ry":0,"rtd":0},"9":{"rec":7,"ny":51,"ntd":0,"ry":0,"rtd":0}}},{"n":"CeeDee Lamb","t":"DAL","gp":9,"pos":"WR","tgt":108,"rec":70,"recYds":904,"recTD":7,"recLng":49,"rzT":17,"lg":{"7":{"rec":5,"ny":74,"ntd":2,"ry":0,"rtd":0},"8":{"rec":7,"ny":58,"ntd":0,"ry":0,"rtd":0},"9":{"rec":10,"ny":195,"ntd":1,"ry":0,"rtd":0}}},{"n":"Christian Watson","t":"GB","gp":9,"pos":"WR","tgt":74,"rec":49,"recYds":879,"recTD":7,"recLng":81,"rzT":7,"lg":{"5":{"rec":6,"ny":143,"ntd":2,"ry":0,"rtd":0},"7":{"rec":5,"ny":57,"ntd":0,"ry":0,"rtd":0},"8":{"rec":8,"ny":113,"ntd":0,"ry":0,"rtd":0},"9":{"rec":7,"ny":171,"ntd":1,"ry":0,"rtd":0}}},{"n":"Matthew Golden","t":"GB","gp":9,"pos":"WR","tgt":92,"rec":53,"recYds":783,"recTD":5,"recLng":50,"rzT":14,"lg":{"5":{"rec":6,"ny":123,"ntd":0,"ry":0,"rtd":0},"7":{"rec":6,"ny":39,"ntd":0,"ry":0,"rtd":0},"8":{"rec":7,"ny":79,"ntd":1,"ry":0,"rtd":0},"9":{"rec":10,"ny":164,"ntd":1,"ry":0,"rtd":0}}},{"n":"Tee Higgins","t":"CIN","gp":8,"pos":"WR","tgt":67,"rec":48,"recYds":758,"recTD":6,"recLng":44,"rzT":6,"lg":{"7":{"rec":6,"ny":148,"ntd":1,"ry":0,"rtd":0},"8":{"rec":10,"ny":155,"ntd":2,"ry":0,"rtd":0},"9":{"rec":5,"ny":32,"ntd":2,"ry":0,"rtd":0}}},{"n":"Chris Olave","t":"NO","gp":8,"pos":"WR","tgt":83,"rec":56,"recYds":734,"recTD":2,"recLng":47,"rzT":7,"lg":{"7":{"rec":6,"ny":56,"ntd":0,"ry":0,"rtd":0},"9":{"rec":7,"ny":98,"ntd":0,"ry":0,"rtd":0},"8":"bye"}},{"n":"Puka Nacua","t":"LAR","gp":7,"pos":"WR","tgt":93,"rec":70,"recYds":715,"recTD":4,"recLng":43,"rzT":12,"lg":{"5":{"rec":17,"ny":138,"ntd":1,"ry":9,"rtd":0},"7":{"rec":8,"ny":68,"ntd":1,"ry":10,"rtd":0},"8":{"rec":11,"ny":80,"ntd":1,"ry":0,"rtd":0},"9":{"rec":14,"ny":150,"ntd":1,"ry":20,"rtd":0}}},{"n":"Drake London","t":"ATL","gp":9,"pos":"WR","tgt":68,"rec":44,"recYds":692,"recTD":1,"recLng":68,"rzT":4,"lg":{"5":{"rec":7,"ny":118,"ntd":0,"ry":0,"rtd":0},"7":{"rec":7,"ny":66,"ntd":1,"ry":0,"rtd":0},"9":{"rec":5,"ny":68,"ntd":0,"ry":0,"rtd":0}}},{"n":"Brock Bowers","t":"LV","gp":7,"pos":"TE","tgt":70,"rec":48,"recYds":658,"recTD":6,"recLng":33,"rzT":11,"lg":{"5":{"rec":8,"ny":110,"ntd":1,"ry":0,"rtd":0},"7":{"rec":6,"ny":73,"ntd":0,"ry":0,"rtd":0},"9":{"rec":7,"ny":111,"ntd":1,"ry":2,"rtd":0}}},{"n":"Amon-Ra St. Brown","t":"DET","gp":8,"pos":"WR","tgt":86,"rec":61,"recYds":657,"recTD":5,"recLng":40,"rzT":18,"lg":{"5":{"rec":6,"ny":69,"ntd":0,"ry":0,"rtd":0},"7":{"rec":9,"ny":153,"ntd":0,"ry":-1,"rtd":0},"8":{"rec":7,"ny":46,"ntd":0,"ry":10,"rtd":0},"9":{"rec":8,"ny":86,"ntd":0,"ry":0,"rtd":0}}},{"n":"Malik Nabers","t":"NYG","gp":8,"pos":"WR","tgt":78,"rec":53,"recYds":648,"recTD":2,"recLng":46,"rzT":8,"lg":{"5":{"rec":11,"ny":121,"ntd":1,"ry":0,"rtd":0},"7":{"rec":7,"ny":111,"ntd":0,"ry":0,"rtd":0},"8":"bye"}},{"n":"Ja'Marr Chase","t":"CIN","gp":8,"pos":"WR","tgt":73,"rec":53,"recYds":647,"recTD":7,"recLng":47,"rzT":13,"lg":{"5":{"rec":6,"ny":77,"ntd":1,"ry":0,"rtd":0},"7":{"rec":5,"ny":62,"ntd":1,"ry":0,"rtd":0},"8":{"rec":11,"ny":141,"ntd":1,"ry":0,"rtd":0},"9":{"rec":10,"ny":155,"ntd":1,"ry":0,"rtd":0}}},{"n":"Luther Burden III","t":"CHI","gp":9,"pos":"WR","tgt":66,"rec":49,"recYds":644,"recTD":4,"recLng":58,"rzT":10,"lg":{"7":{"rec":4,"ny":130,"ntd":1,"ry":7,"rtd":0},"8":{"rec":7,"ny":56,"ntd":1,"ry":0,"rtd":0},"9":{"rec":7,"ny":97,"ntd":1,"ry":0,"rtd":0}}},{"n":"Tetairoa McMillan","t":"CAR","gp":8,"pos":"WR","tgt":71,"rec":46,"recYds":625,"recTD":3,"recLng":32,"rzT":8,"lg":{"7":{"rec":4,"ny":40,"ntd":0,"ry":0,"rtd":0},"8":{"rec":6,"ny":58,"ntd":0,"ry":0,"rtd":0},"9":{"rec":4,"ny":56,"ntd":1,"ry":0,"rtd":0},"5":"bye"}},{"n":"Zay Flowers","t":"BAL","gp":8,"pos":"WR","tgt":64,"rec":43,"recYds":614,"recTD":3,"recLng":54,"rzT":6,"lg":{"5":{"rec":8,"ny":53,"ntd":0,"ry":13,"rtd":0},"7":{"rec":8,"ny":137,"ntd":1,"ry":0,"rtd":0}}},{"n":"Trey McBride","t":"ARI","gp":9,"pos":"TE","tgt":94,"rec":73,"recYds":598,"recTD":5,"recLng":27,"rzT":20,"lg":{"5":{"rec":9,"ny":66,"ntd":1,"ry":0,"rtd":0},"7":{"rec":10,"ny":111,"ntd":1,"ry":0,"rtd":0},"9":{"rec":7,"ny":54,"ntd":0,"ry":0,"rtd":0}}},{"n":"Michael Wilson","t":"ARI","gp":9,"pos":"WR","tgt":88,"rec":51,"recYds":546,"recTD":2,"recLng":27,"rzT":20,"lg":{"7":{"rec":4,"ny":55,"ntd":0,"ry":11,"rtd":0},"8":{"rec":8,"ny":111,"ntd":1,"ry":17,"rtd":0},"9":{"rec":6,"ny":60,"ntd":0,"ry":0,"rtd":0}}},{"n":"George Pickens","t":"DAL","gp":8,"pos":"WR","tgt":62,"rec":39,"recYds":533,"recTD":2,"recLng":53,"rzT":6,"lg":{"5":{"rec":9,"ny":130,"ntd":1,"ry":0,"rtd":0},"7":{"rec":4,"ny":57,"ntd":1,"ry":0,"rtd":0}}},{"n":"Tre Tucker","t":"LV","gp":9,"pos":"WR","tgt":56,"rec":33,"recYds":529,"recTD":4,"recLng":44,"rzT":7,"lg":{"7":{"rec":5,"ny":103,"ntd":1,"ry":0,"rtd":0},"9":{"rec":4,"ny":55,"ntd":0,"ry":0,"rtd":0}}},{"n":"Rome Odunze","t":"CHI","gp":9,"pos":"WR","tgt":51,"rec":32,"recYds":528,"recTD":1,"recLng":47,"rzT":7,"lg":{"7":{"rec":4,"ny":69,"ntd":0,"ry":0,"rtd":0},"8":{"rec":4,"ny":87,"ntd":0,"ry":0,"rtd":0},"9":{"rec":4,"ny":60,"ntd":1,"ry":0,"rtd":0}}},{"n":"Garrett Wilson","t":"NYJ","gp":8,"pos":"WR","tgt":63,"rec":43,"recYds":527,"recTD":3,"recLng":32,"rzT":6,"lg":{"5":{"rec":7,"ny":104,"ntd":1,"ry":0,"rtd":0},"8":{"rec":6,"ny":83,"ntd":0,"ry":0,"rtd":0}}},{"n":"Denzel Boston","t":"CLE","gp":9,"pos":"WR","tgt":61,"rec":32,"recYds":507,"recTD":3,"recLng":60,"rzT":9,"lg":{"5":{"rec":3,"ny":46,"ntd":1,"ry":0,"rtd":0},"8":{"rec":6,"ny":37,"ntd":0,"ry":0,"rtd":0},"9":{"rec":6,"ny":98,"ntd":0,"ry":0,"rtd":0}}},{"n":"Parker Washington","t":"JAX","gp":8,"pos":"WR","tgt":55,"rec":29,"recYds":493,"recTD":5,"recLng":51,"rzT":10,"lg":{"5":{"rec":6,"ny":124,"ntd":2,"ry":0,"rtd":0},"9":{"rec":2,"ny":61,"ntd":1,"ry":0,"rtd":0},"7":"bye"}},{"n":"George Kittle","t":"SF","gp":8,"pos":"TE","tgt":53,"rec":38,"recYds":483,"recTD":5,"recLng":56,"rzT":11,"lg":{"5":{"rec":5,"ny":24,"ntd":0,"ry":0,"rtd":0},"7":{"rec":8,"ny":88,"ntd":0,"ry":0,"rtd":0},"9":{"rec":4,"ny":58,"ntd":0,"ry":0,"rtd":0},"8":"bye"}},{"n":"Travis Kelce","t":"KC","gp":8,"pos":"TE","tgt":48,"rec":33,"recYds":482,"recTD":2,"recLng":59,"rzT":4,"lg":{"7":{"rec":4,"ny":44,"ntd":0,"ry":0,"rtd":0},"8":{"rec":6,"ny":99,"ntd":1,"ry":0,"rtd":0},"9":{"rec":4,"ny":72,"ntd":0,"ry":1,"rtd":1},"5":"bye"}},{"n":"Davante Adams","t":"LAR","gp":6,"pos":"WR","tgt":49,"rec":30,"recYds":480,"recTD":4,"recLng":64,"rzT":7,"lg":{"5":{"rec":5,"ny":51,"ntd":2,"ry":0,"rtd":0}}},{"n":"Jameson Williams","t":"DET","gp":8,"pos":"WR","tgt":46,"rec":28,"recYds":468,"recTD":5,"recLng":49,"rzT":8,"lg":{"5":{"rec":2,"ny":47,"ntd":2,"ry":0,"rtd":0},"7":{"rec":5,"ny":91,"ntd":2,"ry":0,"rtd":0},"8":{"rec":4,"ny":70,"ntd":1,"ry":0,"rtd":0}}},{"n":"Harold Fannin Jr.","t":"CLE","gp":9,"pos":"TE","tgt":53,"rec":37,"recYds":453,"recTD":4,"recLng":39,"rzT":4,"lg":{"7":{"rec":6,"ny":91,"ntd":0,"ry":0,"rtd":0},"8":{"rec":6,"ny":62,"ntd":1,"ry":2,"rtd":0},"9":{"rec":2,"ny":42,"ntd":1,"ry":0,"rtd":0}}},{"n":"KC Concepcion Jr.","t":"CLE","gp":9,"pos":"WR","tgt":55,"rec":37,"recYds":437,"recTD":1,"recLng":64,"rzT":2,"lg":{"7":{"rec":8,"ny":129,"ntd":0,"ry":23,"rtd":0},"9":{"rec":4,"ny":85,"ntd":1,"ry":3,"rtd":0}}},{"n":"DeMario Douglas","t":"NE","gp":9,"pos":"WR","tgt":46,"rec":31,"recYds":434,"recTD":4,"recLng":48,"rzT":4,"lg":{"5":{"rec":4,"ny":65,"ntd":2,"ry":0,"rtd":0},"8":{"rec":3,"ny":76,"ntd":1,"ry":0,"rtd":0},"9":{"rec":5,"ny":102,"ntd":0,"ry":0,"rtd":0}}},{"n":"Dalton Kincaid","t":"BUF","gp":8,"pos":"TE","tgt":38,"rec":30,"recYds":429,"recTD":2,"recLng":40,"rzT":6,"lg":{"8":{"rec":1,"ny":23,"ntd":0,"ry":0,"rtd":0},"9":{"rec":3,"ny":28,"ntd":0,"ry":0,"rtd":0},"7":"bye"}},{"n":"Mike Evans","t":"SF","gp":6,"pos":"WR","tgt":39,"rec":27,"recYds":420,"recTD":3,"recLng":54,"rzT":6,"lg":{"5":{"rec":7,"ny":113,"ntd":1,"ry":0,"rtd":0},"8":"bye"},"inj":["O","Achilles (Week 10 status)"]},{"n":"Carnell Tate","t":"TEN","gp":7,"pos":"WR","tgt":51,"rec":34,"recYds":413,"recTD":1,"recLng":33,"rzT":3,"lg":{"7":{"rec":5,"ny":69,"ntd":0,"ry":0,"rtd":0},"9":"bye"}},{"n":"Khalil Shakir","t":"BUF","gp":8,"pos":"WR","tgt":42,"rec":31,"recYds":412,"recTD":1,"recLng":57,"rzT":8,"lg":{"5":{"rec":3,"ny":80,"ntd":0,"ry":0,"rtd":0},"8":{"rec":5,"ny":64,"ntd":0,"ry":0,"rtd":0},"9":{"rec":4,"ny":53,"ntd":0,"ry":0,"rtd":0},"7":"bye"}},{"n":"Sam LaPorta","t":"DET","gp":8,"pos":"TE","tgt":49,"rec":35,"recYds":399,"recTD":3,"recLng":38,"rzT":12,"lg":{"5":{"rec":5,"ny":88,"ntd":1,"ry":0,"rtd":0},"9":{"rec":4,"ny":32,"ntd":0,"ry":0,"rtd":0}}},{"n":"Ryan Flournoy","t":"DAL","gp":9,"pos":"WR","tgt":47,"rec":32,"recYds":395,"recTD":2,"recLng":48,"rzT":7,"lg":{"5":{"rec":3,"ny":90,"ntd":0,"ry":0,"rtd":0},"7":{"rec":4,"ny":70,"ntd":0,"ry":0,"rtd":0},"8":{"rec":3,"ny":38,"ntd":1,"ry":3,"rtd":0}}},{"n":"Justin Jefferson","t":"MIN","gp":7,"pos":"WR","tgt":51,"rec":31,"recYds":393,"recTD":4,"recLng":39,"rzT":7,"lg":{"5":{"rec":6,"ny":79,"ntd":1,"ry":-11,"rtd":0},"7":{"rec":4,"ny":44,"ntd":0,"ry":0,"rtd":0},"8":{"rec":5,"ny":33,"ntd":1,"ry":0,"rtd":0}}},{"n":"Jalen Coker","t":"CAR","gp":7,"pos":"WR","tgt":49,"rec":31,"recYds":393,"recTD":3,"recLng":51,"rzT":7,"lg":{"8":{"rec":2,"ny":35,"ntd":1,"ry":0,"rtd":0},"5":"bye"}},{"n":"Michael Mayer","t":"LV","gp":9,"pos":"TE","tgt":46,"rec":39,"recYds":388,"recTD":1,"recLng":28,"rzT":3,"lg":{"7":{"rec":3,"ny":32,"ntd":0,"ry":0,"rtd":0},"9":{"rec":3,"ny":37,"ntd":0,"ry":0,"rtd":0}}},{"n":"Stefon Diggs","t":"WAS","gp":8,"pos":"WR","tgt":59,"rec":36,"recYds":386,"recTD":6,"recLng":42,"rzT":6,"lg":{"8":{"rec":3,"ny":38,"ntd":1,"ry":0,"rtd":0},"7":"bye"}},{"n":"Nico Collins","t":"HOU","gp":6,"pos":"WR","tgt":39,"rec":28,"recYds":384,"recTD":4,"recLng":45,"rzT":5,"lg":{"5":{"rec":5,"ny":56,"ntd":0,"ry":0,"rtd":0},"9":{"rec":4,"ny":55,"ntd":1,"ry":0,"rtd":0},"8":"bye"}},{"n":"DK Metcalf","t":"PIT","gp":8,"pos":"WR","tgt":64,"rec":33,"recYds":378,"recTD":1,"recLng":51,"rzT":4,"lg":{"7":{"rec":2,"ny":56,"ntd":0,"ry":0,"rtd":0},"9":"bye"}},{"n":"Jakobi Meyers","t":"JAX","gp":8,"pos":"WR","tgt":37,"rec":26,"recYds":374,"recTD":2,"recLng":32,"rzT":8,"lg":{"9":{"rec":4,"ny":65,"ntd":0,"ry":0,"rtd":0},"7":"bye"}},{"n":"Devaughn Vele","t":"NO","gp":8,"pos":"WR","tgt":52,"rec":35,"recYds":365,"recTD":3,"recLng":31,"rzT":7,"lg":{"7":{"rec":5,"ny":54,"ntd":1,"ry":0,"rtd":0},"8":"bye"}},{"n":"Dalton Schultz","t":"HOU","gp":8,"pos":"TE","tgt":47,"rec":35,"recYds":364,"recTD":0,"recLng":35,"rzT":4,"lg":{"5":{"rec":3,"ny":30,"ntd":0,"ry":0,"rtd":0},"7":{"rec":5,"ny":45,"ntd":0,"ry":0,"rtd":0},"9":{"rec":2,"ny":42,"ntd":0,"ry":0,"rtd":0},"8":"bye"}},{"n":"Colston Loveland","t":"CHI","gp":9,"pos":"TE","tgt":57,"rec":37,"recYds":363,"recTD":2,"recLng":38,"rzT":10,"lg":{"5":{"rec":2,"ny":19,"ntd":0,"ry":0,"rtd":0},"7":{"rec":7,"ny":69,"ntd":1,"ry":0,"rtd":0},"8":{"rec":3,"ny":38,"ntd":0,"ry":0,"rtd":0},"9":{"rec":4,"ny":54,"ntd":0,"ry":0,"rtd":0}}},{"n":"Hunter Henry","t":"NE","gp":9,"pos":"TE","tgt":37,"rec":32,"recYds":361,"recTD":2,"recLng":29,"rzT":5,"lg":{"5":{"rec":3,"ny":44,"ntd":1,"ry":0,"rtd":0},"7":{"rec":7,"ny":71,"ntd":0,"ry":0,"rtd":0},"8":{"rec":1,"ny":7,"ntd":1,"ry":0,"rtd":0},"9":{"rec":3,"ny":35,"ntd":0,"ry":0,"rtd":0}}},{"n":"Brenton Strange","t":"JAX","gp":8,"pos":"TE","tgt":37,"rec":30,"recYds":356,"recTD":1,"recLng":46,"rzT":3,"lg":{"5":{"rec":7,"ny":68,"ntd":0,"ry":0,"rtd":0},"9":{"rec":2,"ny":22,"ntd":0,"ry":0,"rtd":0},"7":"bye"}},{"n":"Josh Downs","t":"IND","gp":9,"pos":"WR","tgt":57,"rec":33,"recYds":354,"recTD":1,"recLng":42,"rzT":6,"lg":{"8":{"rec":4,"ny":23,"ntd":1,"ry":0,"rtd":0}}},{"n":"Jahan Dotson","t":"ATL","gp":9,"pos":"WR","tgt":33,"rec":16,"recYds":353,"recTD":2,"recLng":76,"rzT":6,"lg":{"8":{"rec":2,"ny":95,"ntd":0,"ry":0,"rtd":0}}},{"n":"Keenan Allen","t":"SF","gp":8,"pos":"WR","tgt":58,"rec":40,"recYds":351,"recTD":1,"recLng":26,"rzT":5,"lg":{"5":{"rec":5,"ny":45,"ntd":0,"ry":0,"rtd":0},"8":{"rec":7,"ny":67,"ntd":0,"ry":0,"rtd":0}}},{"n":"Tucker Kraft","t":"GB","gp":9,"pos":"TE","tgt":52,"rec":36,"recYds":351,"recTD":3,"recLng":46,"rzT":9,"lg":{"5":{"rec":5,"ny":64,"ntd":0,"ry":2,"rtd":0},"7":{"rec":4,"ny":48,"ntd":1,"ry":0,"rtd":0},"8":{"rec":7,"ny":143,"ntd":2,"ry":0,"rtd":0}}},{"n":"Malik Washington","t":"MIA","gp":8,"pos":"WR","tgt":48,"rec":33,"recYds":350,"recTD":1,"recLng":30,"rzT":4,"lg":{"5":{"rec":6,"ny":43,"ntd":0,"ry":18,"rtd":0},"8":{"rec":5,"ny":40,"ntd":1,"ry":0,"rtd":0}}},{"n":"Malachi Fields","t":"NYG","gp":9,"pos":"WR","tgt":39,"rec":22,"recYds":350,"recTD":1,"recLng":47,"rzT":4,"lg":{"7":{"rec":4,"ny":83,"ntd":0,"ry":0,"rtd":0},"8":"bye"}},{"n":"Jaylen Waddle","t":"DEN","gp":9,"pos":"WR","tgt":52,"rec":30,"recYds":337,"recTD":2,"recLng":49,"rzT":5,"lg":{"7":{"rec":4,"ny":48,"ntd":0,"ry":0,"rtd":0},"8":{"rec":3,"ny":39,"ntd":1,"ry":0,"rtd":0}}},{"n":"Jaylin Noel","t":"HOU","gp":7,"pos":"WR","tgt":23,"rec":19,"recYds":331,"recTD":2,"recLng":52,"rzT":3,"lg":{"5":{"rec":5,"ny":41,"ntd":1,"ry":1,"rtd":0},"8":"bye"}},{"n":"T.J. Hockenson","t":"MIN","gp":8,"pos":"TE","tgt":44,"rec":35,"recYds":328,"recTD":3,"recLng":22,"rzT":7,"lg":{"7":{"rec":4,"ny":35,"ntd":1,"ry":0,"rtd":0},"8":{"rec":2,"ny":26,"ntd":0,"ry":0,"rtd":0},"9":{"rec":4,"ny":33,"ntd":0,"ry":0,"rtd":0}},"inj":["O","Wrist, chest (Week 10 status)"]},{"n":"Antonio Williams","t":"WAS","gp":9,"pos":"WR","tgt":41,"rec":28,"recYds":326,"recTD":2,"recLng":33,"rzT":2,"lg":{"8":{"rec":5,"ny":54,"ntd":0,"ry":0,"rtd":0},"7":"bye"}},{"n":"Kayshon Boutte","t":"HOU","gp":8,"pos":"WR","tgt":28,"rec":19,"recYds":319,"recTD":2,"recLng":63,"rzT":4,"lg":{"9":{"rec":4,"ny":125,"ntd":2,"ry":0,"rtd":0},"8":"bye"}},{"n":"Makai Lemon","t":"PHI","gp":9,"pos":"WR","tgt":54,"rec":37,"recYds":312,"recTD":1,"recLng":21,"rzT":2,"lg":{"5":{"rec":5,"ny":43,"ntd":0,"ry":0,"rtd":0},"7":{"rec":7,"ny":67,"ntd":1,"ry":0,"rtd":0},"8":{"rec":6,"ny":57,"ntd":0,"ry":0,"rtd":0},"9":{"rec":6,"ny":61,"ntd":0,"ry":0,"rtd":0}}},{"n":"DeVonta Smith","t":"PHI","gp":4,"pos":"WR","tgt":41,"rec":26,"recYds":310,"recTD":2,"recLng":31,"rzT":3,"lg":{}},{"n":"Dallas Goedert","t":"PHI","gp":7,"pos":"TE","tgt":42,"rec":31,"recYds":308,"recTD":2,"recLng":43,"rzT":4,"lg":{"5":{"rec":6,"ny":38,"ntd":0,"ry":0,"rtd":0},"7":{"rec":5,"ny":48,"ntd":0,"ry":0,"rtd":0},"8":{"rec":3,"ny":28,"ntd":2,"ry":0,"rtd":0},"9":{"rec":5,"ny":50,"ntd":0,"ry":0,"rtd":0}}},{"n":"Omar Cooper Jr.","t":"NYJ","gp":5,"pos":"WR","tgt":24,"rec":20,"recYds":306,"recTD":2,"recLng":60,"rzT":2,"lg":{"7":{"rec":5,"ny":115,"ntd":1,"ry":0,"rtd":0},"9":{"rec":8,"ny":58,"ntd":0,"ry":0,"rtd":0}}},{"n":"Keon Coleman","t":"BUF","gp":8,"pos":"WR","tgt":33,"rec":23,"recYds":304,"recTD":3,"recLng":37,"rzT":5,"lg":{"7":"bye"}},{"n":"Darren Waller","t":"CAR","gp":8,"pos":"TE","tgt":35,"rec":23,"recYds":299,"recTD":4,"recLng":50,"rzT":5,"lg":{"7":{"rec":1,"ny":50,"ntd":1,"ry":0,"rtd":0},"9":{"rec":8,"ny":90,"ntd":1,"ry":0,"rtd":0},"5":"bye"}},{"n":"Caleb Douglas","t":"MIA","gp":5,"pos":"WR","tgt":27,"rec":19,"recYds":296,"recTD":2,"recLng":63,"rzT":2,"lg":{"7":{"rec":2,"ny":70,"ntd":2,"ry":0,"rtd":0},"9":{"rec":6,"ny":70,"ntd":0,"ry":0,"rtd":0}}},{"n":"Rashod Bateman","t":"BAL","gp":9,"pos":"WR","tgt":31,"rec":20,"recYds":294,"recTD":1,"recLng":31,"rzT":3,"lg":{"5":{"rec":5,"ny":62,"ntd":0,"ry":0,"rtd":0}}},{"n":"Rashee Rice","t":"KC","gp":6,"pos":"WR","tgt":32,"rec":25,"recYds":292,"recTD":2,"recLng":34,"rzT":5,"lg":{"8":{"rec":7,"ny":53,"ntd":1,"ry":0,"rtd":0},"9":{"rec":5,"ny":49,"ntd":0,"ry":0,"rtd":0},"5":"bye"}},{"n":"Kalif Raymond","t":"CHI","gp":9,"pos":"WR","tgt":41,"rec":32,"recYds":290,"recTD":1,"recLng":41,"rzT":4,"lg":{}},{"n":"Juwan Johnson","t":"NO","gp":8,"pos":"TE","tgt":39,"rec":28,"recYds":289,"recTD":4,"recLng":27,"rzT":7,"lg":{"5":{"rec":4,"ny":16,"ntd":0,"ry":0,"rtd":0},"9":{"rec":2,"ny":34,"ntd":1,"ry":0,"rtd":0},"8":"bye"}},{"n":"Tyler Higbee","t":"LAR","gp":9,"pos":"TE","tgt":39,"rec":28,"recYds":287,"recTD":1,"recLng":30,"rzT":3,"lg":{"5":{"rec":5,"ny":83,"ntd":0,"ry":0,"rtd":0},"7":{"rec":2,"ny":14,"ntd":0,"ry":0,"rtd":0}}},{"n":"Xavier Hutchinson","t":"HOU","gp":8,"pos":"WR","tgt":45,"rec":24,"recYds":287,"recTD":2,"recLng":28,"rzT":4,"lg":{"5":{"rec":4,"ny":65,"ntd":0,"ry":0,"rtd":0},"7":{"rec":3,"ny":17,"ntd":1,"ry":12,"rtd":0},"9":{"rec":3,"ny":29,"ntd":1,"ry":0,"rtd":0},"8":"bye"}}],"def_":{"tkl":[{"n":"Alex Singleton","t":"DEN","gp":9,"v":107},{"n":"Nakobe Dean","t":"LV","gp":9,"v":99},{"n":"Carson Schwesinger","t":"CLE","gp":9,"v":89},{"n":"Ernest Jones IV","t":"SEA","gp":9,"v":88},{"n":"Anthony Hill Jr.","t":"TEN","gp":8,"v":82},{"n":"Nick Bolton","t":"KC","gp":8,"v":80},{"n":"Jacob Rodriguez","t":"MIA","gp":8,"v":79},{"n":"Fred Warner","t":"SF","gp":8,"v":77},{"n":"Jamien Sherwood","t":"NYJ","gp":9,"v":77},{"n":"Blake Cashman","t":"MIN","gp":8,"v":76},{"n":"Jordyn Brooks","t":"MIA","gp":8,"v":75},{"n":"Dane Belton","t":"NYJ","gp":9,"v":75},{"n":"Roquan Smith","t":"BAL","gp":9,"v":74},{"n":"Quay Walker","t":"LV","gp":9,"v":72},{"n":"Evan Williams","t":"GB","gp":9,"v":71},{"n":"Josiah Trotter","t":"TB","gp":8,"v":70},{"n":"Azeez Al-Shaair","t":"HOU","gp":7,"v":68},{"n":"Barrett Carter","t":"CIN","gp":8,"v":68},{"n":"Sonny Styles","t":"WAS","gp":8,"v":67},{"n":"Drue Tranquill","t":"KC","gp":8,"v":66},{"n":"Arvell Reese","t":"NYG","gp":8,"v":66},{"n":"Zack Baun","t":"PHI","gp":8,"v":65},{"n":"Akeem Davis-Gaither","t":"IND","gp":8,"v":65},{"n":"Jeremy Chinn","t":"LV","gp":9,"v":65},{"n":"Pete Werner","t":"NO","gp":8,"v":65}],"sck":[{"n":"Will Anderson Jr.","t":"HOU","gp":8,"v":9.5},{"n":"Chase Young","t":"NO","gp":8,"v":8.0},{"n":"Greg Rousseau","t":"BUF","gp":8,"v":8.0},{"n":"Andrew Van Ginkel","t":"MIN","gp":8,"v":7.5},{"n":"Carl Granderson","t":"NO","gp":7,"v":7.5},{"n":"David Bailey","t":"NYJ","gp":8,"v":7.5},{"n":"Elijah Ponder","t":"NE","gp":9,"v":7.5},{"n":"T.J. Watt","t":"PIT","gp":8,"v":7.5},{"n":"Dallas Turner","t":"MIN","gp":8,"v":7.0},{"n":"Jacob Martin","t":"TEN","gp":8,"v":6.5},{"n":"Jeffery Simmons","t":"CHI","gp":9,"v":6.0},{"n":"Alim McNeill","t":"DET","gp":8,"v":5.5},{"n":"Boye Mafe","t":"CIN","gp":8,"v":5.5},{"n":"Aidan Hutchinson","t":"DET","gp":8,"v":5.0},{"n":"Austin Booker","t":"CHI","gp":9,"v":5.0}]},"games":[{"a":"LAC","h":"BAL","k":"Tue 01:15","note":"Wk 10 MNF","odds":{"fav":"BAL","sp":5.5,"tot":38.5,"imp":{"BAL":22.0,"LAC":16.5},"ml":{"LAC":0.437,"BAL":0.563}},"wx":["cold","Cloudy, cold: low 2\u00b0C at night"]},{"a":"IND","h":"HOU","k":"Fri 01:15","note":"TNF","odds":{"fav":"HOU","sp":10.5,"tot":44.5,"imp":{"HOU":27.5,"IND":17.0},"ml":{"IND":0.19,"HOU":0.81}},"wx":["roof","Roof / dome"]},{"a":"MIA","h":"BUF","k":"Sun 18:00","note":"","odds":{"fav":"BUF","sp":16.5,"tot":46.5,"imp":{"BUF":31.5,"MIA":15.0},"ml":{"MIA":0.1,"BUF":0.9}},"wx":["open","Outdoors: forecast due Wednesday"]},{"a":"NO","h":"CHI","k":"Sun 18:00","note":"","odds":{"fav":"CHI","sp":9.5,"tot":48.5,"imp":{"CHI":29.0,"NO":19.5},"ml":{"NO":0.18,"CHI":0.82}},"wx":["open","Outdoors: forecast due Wednesday"]},{"a":"TEN","h":"DAL","k":"Sun 18:00","note":"","odds":{"fav":"DAL","sp":7.5,"tot":52.5,"imp":{"DAL":30.0,"TEN":22.5},"ml":{"TEN":0.22,"DAL":0.78}},"wx":["roof","Roof / dome"]},{"a":"TB","h":"DET","k":"Sun 18:00","note":"","odds":{"fav":"DET","sp":5.5,"tot":46.5,"imp":{"DET":26.0,"TB":20.5},"ml":{"TB":0.31,"DET":0.69}},"wx":["roof","Roof / dome"]},{"a":"ARI","h":"KC","k":"Sun 18:00","note":"","odds":{"fav":"KC","sp":16.5,"tot":40.5,"imp":{"KC":28.5,"ARI":12.0},"ml":{"ARI":0.1,"KC":0.9}},"wx":["open","Outdoors: forecast due Wednesday"]},{"a":"BAL","h":"CAR","k":"Sun 18:00","note":"","odds":{"fav":"CAR","sp":1.5,"tot":44.5,"imp":{"CAR":23.0,"BAL":21.5},"ml":{"BAL":0.47,"CAR":0.53}},"wx":["open","Outdoors: forecast due Wednesday"]},{"a":"PIT","h":"PHI","k":"Sun 18:00","note":"","odds":{"fav":"PIT","sp":3.5,"tot":38.5,"imp":{"PIT":21.0,"PHI":17.5},"ml":{"PIT":0.66,"PHI":0.34}},"wx":["open","Outdoors: forecast due Wednesday"]},{"a":"NYJ","h":"LAC","k":"Sun 21:05","note":"","odds":{"fav":"LAC","sp":3.5,"tot":40.5,"imp":{"LAC":22.0,"NYJ":18.5},"ml":{"NYJ":0.39,"LAC":0.61}},"wx":["roof","Roof / dome"]},{"a":"LV","h":"DEN","k":"Sun 21:25","note":"","odds":{"fav":"DEN","sp":9.5,"tot":40.5,"imp":{"DEN":25.0,"LV":15.5},"ml":{"LV":0.19,"DEN":0.81}},"wx":["open","Outdoors: forecast due Wednesday"]},{"a":"JAX","h":"NYG","k":"Sun 21:25","note":"","odds":{"fav":"JAX","sp":6.5,"tot":46.5,"imp":{"JAX":26.5,"NYG":20.0},"ml":{"JAX":0.7,"NYG":0.3}},"wx":["open","Outdoors: forecast due Wednesday"]},{"a":"MIN","h":"SF","k":"Mon 01:20","note":"SNF","odds":{"fav":"SF","sp":3.5,"tot":46.5,"imp":{"SF":25.0,"MIN":21.5},"ml":{"MIN":0.4,"SF":0.6}},"wx":["open","Outdoors: forecast due Wednesday"]},{"a":"CIN","h":"WAS","k":"Tue 01:15","note":"MNF","odds":{"fav":"CIN","sp":1.5,"tot":52.5,"imp":{"CIN":27.0,"WAS":25.5},"ml":{"CIN":0.66,"WAS":0.34}},"wx":["open","Outdoors: forecast due Wednesday"]}],"sources":{"logs":"sticktothemodel.com weekly results (wks 5, 7, 8, 9)","odds":"DraftKings via StatSniper","wx":"Weather Channel via Bleacher Report, 11 Nov","inj":"NFL.com Week 10 injury report"}};
+const $ = s => document.querySelector(s);
+const T = Object.fromEntries(D.teams.map(t => [t.ab, t]));
+const P = D.players;
+const f1 = v => (Math.round(v * 10) / 10).toFixed(1);
+const f0 = v => Math.round(v).toLocaleString('en-GB');
+$('#asof').textContent = `Stats through ${D.asOf}`;
+let store = {};
+try { store = JSON.parse(localStorage.getItem('ge-lines') || '{}'); } catch (e) {}
+const save = () => { try { localStorage.setItem('ge-lines', JSON.stringify(store)); } catch (e) {} };
+
+/* ---------- tabs ---------- */
+document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => go(b.dataset.v)));
+function go(v) {
+  document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', b.dataset.v === v));
+  document.querySelectorAll('.view').forEach(s => s.classList.toggle('on', s.id === 'v-' + v));
+  try { history.replaceState(null, '', '#' + v); } catch (e) {}
+  scrollTo(0, 0);
+}
+function seg(el, opts, cur, cb, small) {
+  el.className = 'seg' + (small ? ' small' : '');
+  el.innerHTML = opts.map(([k, l]) => `<button aria-pressed="${k === cur}" data-k="${k}">${l}</button>`).join('');
+  el.onclick = e => { const b = e.target.closest('button'); if (!b) return; el.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); cb(b.dataset.k); };
+}
+const row = (i, nm, sub, val) => `<li class="r"><span class="k">${i}</span><span class="nm">${nm}${sub ? `<i>${sub}</i>` : ''}</span><span class="num">${val}</span></li>`;
+
+/* ---------- teams ---------- */
+const pg = (t, k) => t[k] / t.gp;
+const TS = {
+  defense: [
+    ['Points allowed', 'per game', t => t.pa / t.gp, 1, f1],
+    ['Yards allowed', 'per game', t => (t.dpYds + t.drYds) / t.gp, 1, f1],
+    ['Passing yards allowed', 'per game', t => pg(t, 'dpYds'), 1, f1],
+    ['Rushing yards allowed', 'per game', t => pg(t, 'drYds'), 1, f1],
+    ['Yards per carry allowed', 'avg', t => t.drYPC, 1, f1],
+    ['Yards per pass allowed', 'avg', t => t.dpYA, 1, f1],
+    ['Passing TDs allowed', 'per game', t => pg(t, 'dpTD'), 1, v => v.toFixed(2)],
+    ['Rushing TDs allowed', 'per game', t => pg(t, 'drTD'), 1, v => v.toFixed(2)],
+    ['Total TDs allowed', 'season', t => t.dpTD + t.drTD, 1, f0],
+    ['Passer rating allowed', 'season', t => t.dRate, 1, f1],
+    ['Sacks', 'season', t => t.dSck, -1, f0],
+    ['Interceptions', 'season', t => t.dINT, -1, f0],
+  ],
+  offense: [
+    ['Points scored', 'per game', t => t.pf / t.gp, -1, f1],
+    ['Total yards', 'per game', t => (t.opYds + t.orYds) / t.gp, -1, f1],
+    ['Passing yards', 'per game', t => pg(t, 'opYds'), -1, f1],
+    ['Rushing yards', 'per game', t => pg(t, 'orYds'), -1, f1],
+    ['Yards per carry', 'avg', t => t.orYPC, -1, f1],
+    ['Yards per pass', 'avg', t => t.opYA, -1, f1],
+    ['Passing TDs', 'season', t => t.opTD, -1, f0],
+    ['Rushing TDs', 'season', t => t.orTD, -1, f0],
+    ['Passer rating', 'season', t => t.oRate, -1, f1],
+    ['Sacks allowed', 'season', t => t.oSckA, 1, f0],
+    ['Interceptions thrown', 'season', t => t.oINT, 1, f0],
+    ['Point difference', 'season', t => t.pf - t.pa, -1, v => (v > 0 ? '+' : '') + v],
+  ],
+  records: null
+};
+function teamsView(k) {
+  if (k === 'dvp') {
+    const cards = [['QB', 'Passing yards allowed to QBs'], ['RB', 'Yards allowed to RBs (rush + catch)'], ['WR', 'Receiving yards allowed to WRs'], ['TE', 'Receiving yards allowed to TEs']].flatMap(([pos, title]) => [[pos, 0, title, f1], [pos, 1, title.replace(/^.*allowed to/, 'TDs allowed to').replace(/ \(.*\)/, ''), v => v.toFixed(2)]]);
+    $('#teams-out').innerHTML = cards.map(([pos, ix, title, fmt]) => {
+      const s = D.teams.map(t => [t, t.dvp[pos][ix]]).sort((a, b) => a[1] - b[1]);
+      const best = s.slice(0, 5), worst = s.slice(-5).reverse();
+      return `<div class="card"><h3>${title} <small>per game</small></h3><div class="duo">
+        <div class="b"><h4>Toughest 5</h4><ol>${best.map(([t, v], i) => row(i + 1, t.ab, '', fmt(v))).join('')}</ol></div>
+        <div class="w"><h4>Softest 5</h4><ol>${worst.map(([t, v], i) => row(32 - i, t.ab, '', fmt(v))).join('')}</ol></div></div></div>`;
+    }).join('') + `<p class="note" style="grid-column:1/-1">From weekly box scores for weeks ${D.logWeeks.join(', ')}, counting each week's top 40 players at each position, so a few minor players are missing.</p>`;
+    return;
+  }
+  if (k === 'records') {
+    const rs = D.teams.slice().sort((a, b) => (b.w + b.t / 2) / b.gp - (a.w + a.t / 2) / a.gp || (b.pf - b.pa) - (a.pf - a.pa));
+    $('#teams-out').innerHTML = `<div class="card" style="grid-column:1/-1"><h3>All 32 teams <small>W-L-T · PF · PA</small></h3><ol>${rs.map((t, i) => row(i + 1, t.name, '', `${t.w}-${t.l}${t.t ? '-' + t.t : ''} <span style="font-weight:600;color:var(--mute);font-size:14px">${t.pf}/${t.pa}</span>`)).join('')}</ol></div>`;
+    return;
+  }
+  $('#teams-out').innerHTML = TS[k].map(([title, unit, fn, dir, fmt]) => {
+    const s = D.teams.map(t => [t, fn(t)]).sort((a, b) => (a[1] - b[1]) * dir);
+    const best = s.slice(0, 5), worst = s.slice(-5).reverse();
+    return `<div class="card"><h3>${title} <small>${unit}</small></h3><div class="duo">
+      <div class="b"><h4>Best 5</h4><ol>${best.map(([t, v], i) => row(i + 1, t.ab, '', fmt(v))).join('')}</ol></div>
+      <div class="w"><h4>Worst 5</h4><ol>${worst.map(([t, v], i) => row(32 - i, t.ab, '', fmt(v))).join('')}</ol></div></div></div>`;
+  }).join('');
+}
+seg($('#seg-teams'), [['defense', 'Defence'], ['offense', 'Offence'], ['dvp', 'Vs position'], ['records', 'Standings']], 'defense', teamsView);
+teamsView('defense');
+
+/* ---------- players ---------- */
+const has = k => p => p[k] != null;
+const PS = {
+  passing: [
+    ['Passing yards', p => p.pYds, has('pYds'), f0],
+    ['Passing yards per game', p => p.pYds / p.gp, p => p.pYds && p.gp >= 3, f1],
+    ['Passing TDs', p => p.pTD, has('pTD'), f0],
+    ['Passer rating', p => p.rate, p => p.pAtt >= 100, f1],
+    ['Completion %', p => p.cmp / p.pAtt * 100, p => p.pAtt >= 100, f1],
+    ['Yards per attempt', p => p.pYds / p.pAtt, p => p.pAtt >= 100, f1],
+    ['Most interceptions thrown', p => p.int_, has('int_'), f0],
+    ['Most times sacked', p => p.sk, has('sk'), f0],
+  ],
+  rushing: [
+    ['Rushing yards', p => p.rYds, has('rYds'), f0],
+    ['Rushing yards per game', p => p.rYds / p.gp, p => p.rYds && p.gp >= 3, f1],
+    ['Rushing TDs', p => p.rTD, has('rTD'), f0],
+    ['Yards per carry', p => p.rYds / p.rAtt, p => p.rAtt >= 60, f1],
+    ['Carries', p => p.rAtt, has('rAtt'), f0],
+    ['Red-zone carries', p => p.rz, has('rz'), f0],
+    ['Longest run', p => p.rLng, has('rLng'), f0],
+  ],
+  receiving: [
+    ['Receiving yards', p => p.recYds, has('recYds'), f0],
+    ['Receiving yards per game', p => p.recYds / p.gp, p => p.recYds && p.gp >= 3, f1],
+    ['Receptions', p => p.rec, has('rec'), f0],
+    ['Targets', p => p.tgt, has('tgt'), f0],
+    ['Receiving TDs', p => p.recTD, has('recTD'), f0],
+    ['Yards per catch', p => p.recYds / p.rec, p => p.rec >= 20, f1],
+    ['Red-zone targets', p => p.rzT, has('rzT'), f0],
+    ['Tight end receiving yards', p => p.recYds, p => p.pos === 'TE', f0],
+  ],
+  tds: [
+    ['Total TDs (rush + catch)', p => (p.rTD || 0) + (p.recTD || 0), p => p.rTD || p.recTD, f0],
+    ['TDs per game', p => ((p.rTD || 0) + (p.recTD || 0)) / p.gp, p => (p.rTD || p.recTD) && p.gp >= 3, v => v.toFixed(2)],
+    ['Scrimmage yards', p => (p.rYds || 0) + (p.recYds || 0), p => p.rYds || p.recYds, f0],
+    ['Scrimmage yards per game', p => ((p.rYds || 0) + (p.recYds || 0)) / p.gp, p => (p.rYds || p.recYds) && p.gp >= 3, f1],
+  ],
+};
+const open = {};
+function playersView(k) {
+  if (k === 'defense') {
+    const card = (t, list, fmt) => `<div class="card"><h3>${t}</h3><ol>${list.map((p, i) => row(i + 1, p.n, p.t, fmt(p.v))).join('')}</ol></div>`;
+    $('#players-out').innerHTML = card('Tackles', D.def_.tkl.slice(0, 10), f0) + card('Sacks', D.def_.sck.slice(0, 10), v => v.toFixed(1));
+    return;
+  }
+  $('#players-out').innerHTML = PS[k].map(([title, fn, ok, fmt], ci) => {
+    const id = k + ci, n = open[id] ? 15 : 5;
+    const s = P.filter(ok).map(p => [p, fn(p)]).sort((a, b) => b[1] - a[1]).slice(0, n);
+    return `<div class="card"><h3>${title}</h3><ol>${s.map(([p, v], i) => row(i + 1, p.n, p.t + ' ' + p.pos, fmt(v))).join('')}</ol>
+      <button class="more" data-id="${id}" data-k="${k}">${open[id] ? 'Show top 5' : 'Show top 15'}</button></div>`;
+  }).join('');
+}
+$('#players-out').addEventListener('click', e => { const b = e.target.closest('.more'); if (!b) return; open[b.dataset.id] = !open[b.dataset.id]; playersView(b.dataset.k); });
+seg($('#seg-players'), [['passing', 'Passing'], ['rushing', 'Rushing'], ['receiving', 'Receiving'], ['tds', 'TDs'], ['defense', 'Defence']], 'passing', playersView);
+playersView('passing');
+$('#psearch').addEventListener('input', e => {
+  const q = e.target.value.trim().toLowerCase();
+  if (q.length < 2) { $('#psearch-out').innerHTML = ''; return; }
+  const hits = P.filter(p => p.n.toLowerCase().includes(q) || p.t.toLowerCase() === q).slice(0, 12);
+  $('#psearch-out').innerHTML = hits.length ? `<div class="card" style="margin-bottom:12px">${hits.map(statLine).join('')}</div>` : '<p class="note">No player found in the tracked leaderboards.</p>';
+});
+function statLine(p) {
+  const bits = [];
+  if (p.pYds != null) bits.push(`${f0(p.pYds)} pass yds, ${p.pTD} TD, ${p.int_} INT, ${f1(p.rate)} rating`);
+  if (p.rYds != null) bits.push(`${f0(p.rYds)} rush yds on ${p.rAtt} (${f1(p.rYds / p.rAtt)} ypc), ${p.rTD} TD`);
+  if (p.recYds != null) bits.push(`${p.rec} catches, ${f0(p.recYds)} yds, ${p.recTD} TD, ${p.tgt} targets`);
+  return `<div class="mrow"><div class="who">${p.n} <i>${p.t} ${p.pos} · ${p.gp} games</i></div><div></div><div class="sub">${bits.join(' · ')}</div></div>`;
+}
+
+/* ---------- matchup model ---------- */
+const avg = fn => D.teams.reduce((s, t) => s + fn(t), 0) / D.teams.length;
+const AL = { py: avg(t => pg(t, 'dpYds')), ry: avg(t => pg(t, 'drYds')), ptd: avg(t => pg(t, 'dpTD')), rtd: avg(t => pg(t, 'drTD')), pts: avg(t => t.pf / t.gp) };
+const DVPAVG = Object.fromEntries(['QB', 'RB', 'WR', 'TE'].map(k => [k, [avg(t => t.dvp[k][0]), avg(t => t.dvp[k][1])]]));
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const fac = (opp, k) => {
+  const t = T[opp];
+  return { py: clamp(pg(t, 'dpYds') / AL.py, .75, 1.25), ry: clamp(pg(t, 'drYds') / AL.ry, .75, 1.25),
+           ptd: clamp(1 + (pg(t, 'dpTD') / AL.ptd - 1) * .5, .7, 1.4), rtd: clamp(1 + (pg(t, 'drTD') / AL.rtd - 1) * .5, .7, 1.4) }[k];
+};
+// defence vs this position (yards), blended 50/50 with the team-wide factor
+const posFac = (opp, pos) => { const d = T[opp].dvp[pos]; return d ? clamp(d[0] / DVPAVG[pos][0], .7, 1.3) : 1; };
+const opp = {}; D.games.forEach(g => { if (!opp[g.a]) opp[g.a] = { o: g.h, g, home: false }; if (!opp[g.h]) opp[g.h] = { o: g.a, g, home: true }; }); // a team's next game
+// expected points from the betting line vs league average
+const imp = t => opp[t] && opp[t].g.odds ? opp[t].g.odds.imp[t] : null;
+const tFac = (t, w) => { const i = imp(t); return i ? clamp(1 + (i / AL.pts - 1) * w, .8, 1.25) : 1; };
+const windy = t => opp[t] && opp[t].g.wx && opp[t].g.wx[0] === 'wind';
+const rankOf = (o, fn) => 1 + D.teams.filter(t => fn(t) < fn(T[o])).length;
+const grade = f => f >= 1.12 ? ['g5', 'Great matchup'] : f >= 1.04 ? ['g4', 'Good'] : f > .96 ? ['', 'Neutral'] : f > .88 ? ['g2', 'Tough'] : ['g1', 'Avoid'];
+const gtag = f => { const [c, l] = grade(f); return `<span class="tag ${c}">${l} ${f >= 1 ? '+' : ''}${Math.round((f - 1) * 100)}%</span>`; };
+const pois = (l, k) => { let p = 0, term = Math.exp(-l); for (let i = 0; i < k; i++) { p += term; term *= l / (i + 1); } return 1 - p; };
+// thisWeek = true uses the betting line + weather for this week's game
+function proj(p, o, thisWeek) {
+  const r = {}, tw = thisWeek && opp[p.t] && opp[p.t].o === o;
+  const yT = tw ? tFac(p.t, .3) : 1, tdT = tw ? tFac(p.t, .6) : 1, wind = tw && windy(p.t) ? .93 : 1;
+  const recF = pos => (fac(o, 'py') + posFac(o, pos)) / 2;
+  if (p.pYds != null) { r.passYds = p.pYds / p.gp * fac(o, 'py') * yT * wind; r.passTD = p.pTD / p.gp * fac(o, 'ptd') * tdT; }
+  if (p.rYds != null) r.rushYds = p.rYds / p.gp * fac(o, 'ry') * yT;
+  if (p.recYds != null) { r.recF = recF(p.pos); r.recYds = p.recYds / p.gp * r.recF * yT * wind; r.rec = p.rec / p.gp * (1 + (r.recF - 1) * .5); }
+  const sh = n => ((n || 0) + .25) / (p.gp + 3);
+  const lam = ((p.rTD != null ? sh(p.rTD) * fac(o, 'rtd') : 0) + (p.recTD != null ? sh(p.recTD) * fac(o, 'ptd') : 0)) * tdT;
+  r.tdP = 1 - Math.exp(-lam);
+  return r;
+}
+function parseOdds(s) {
+  s = (s || '').trim(); if (!s) return null;
+  if (s.toLowerCase() === 'evs' || s.toLowerCase() === 'evens') return 2;
+  if (s.includes('/')) { const [a, b] = s.split('/').map(Number); return a > 0 && b > 0 ? a / b + 1 : null; }
+  if (/^[+-]\d+$/.test(s)) { const n = +s; return n > 0 ? n / 100 + 1 : 100 / -n + 1; }
+  const d = parseFloat(s); return d > 1 ? d : null;
+}
+/* ---------- recent form + hit rates from the weekly logs ---------- */
+const STATKEY = { qb: 'py', rush: 'ry', rec: 'ny' };
+function logVals(p, k) { // [{w, v}] for logged weeks; v null = not in that week's top 40 (low game or did not play); 'bye'
+  return D.logWeeks.map(w => { const g = p.lg && p.lg[w]; return { w, v: g === 'bye' ? 'bye' : g ? (k === 'td' ? (g.rtd || 0) + (g.ntd || 0) : (g[k] || 0)) : null }; });
+}
+function formHTML(p, k, avgV) {
+  const L = logVals(p, k).filter(x => x.v !== 'bye').slice(-3);
+  if (!L.length) return '';
+  const nums = L.map(x => x.v);
+  const known = nums.filter(v => v != null), mean = known.length ? known.reduce((a, b) => a + b, 0) / known.length : null;
+  const trend = mean == null ? '' : k === 'td' ? '' : mean > avgV * 1.15 ? '<span class="up">Hot</span>' : mean < avgV * .85 ? '<span class="dn">Cold</span>' : '';
+  return `<span class="form">Last ${L.length}: ${nums.map(v => v == null ? '<b title="Not in that week\'s top 40: a quiet game or did not play">low</b>' : `<b>${v}</b>`).join(' ')}</span> ${trend}`;
+}
+function hitHTML(p, k, line) {
+  if (!(line > 0)) return '';
+  const L = logVals(p, k).filter(x => x.v !== 'bye');
+  if (!L.length) return '';
+  const hits = L.filter(x => x.v != null && x.v > line).length;
+  return `<span class="tag ${hits / L.length >= .6 ? 'g4' : hits / L.length <= .4 ? 'g2' : ''}">Over ${line} in ${hits} of last ${L.length}</span>`;
+}
+function lean(projV, key) {
+  const line = parseFloat(store[key]); if (!(line > 0)) return '';
+  const e = (projV - line) / line;
+  if (e > .05) return `<span class="tag ov">Lean over +${Math.round(e * 100)}%</span>`;
+  if (e < -.05) return `<span class="tag un">Lean under ${Math.round(e * 100)}%</span>`;
+  return `<span class="tag">No edge</span>`;
+}
+function tdValue(pr, key) {
+  const d = parseOdds(store[key]); if (!d) return '';
+  const imp = 1 / d;
+  return pr > imp * 1.05 ? `<span class="tag ov">Value (book ${Math.round(imp * 100)}%)</span>` : `<span class="tag">No value (book ${Math.round(imp * 100)}%)</span>`;
+}
+const injTag = p => p.inj ? `<span class="tag ${p.inj[0] === 'O' ? 'g1' : 'g2'}">${{ O: 'Out', D: 'Doubtful', Q: 'Questionable' }[p.inj[0]]} · ${p.inj[1]}</span>` : '';
+const wxLine = g => g.wx ? (g.wx[0] === 'roof' ? g.wx[1] : `<span class="${g.wx[0] === 'wind' ? 'warn' : ''}">${g.wx[1]}</span>`) : '';
+function gameLine(g) {
+  const o = g.odds;
+  const line = o ? `${o.fav} -${o.sp} · O/U ${o.tot} · team totals ${g.a} ${o.imp[g.a]}, ${g.h} ${o.imp[g.h]}` : 'No line';
+  return `<div class="game" data-g="${g.a + g.h}"><div><b>${g.a} @ ${g.h}</b> <i>${g.k}${g.note ? ' · ' + g.note : ''}</i></div><div class="gsub">${line}</div><div class="gsub">${wxLine(g)}</div></div>`;
+}
+
+/* ---------- matchups views ---------- */
+let mk = 'week', cat = 'td', gsel = 'all';
+const roles = {
+  td: p => p.pos !== 'QB' ? (p.rTD != null || p.recTD != null) && ((p.rAtt || 0) / p.gp >= 6 || (p.tgt || 0) / p.gp >= 4) : (p.rTD || 0) >= 2,
+  qb: p => p.pos === 'QB' && p.pAtt / p.gp >= 18,
+  rush: p => p.rAtt != null && p.rAtt / p.gp >= 7,
+  rec: p => p.recYds != null && p.tgt / p.gp >= 4,
+};
+function weekView() {
+  const games = [['all', 'All games']].concat(D.games.map(g => [g.a + g.h, `${g.a} @ ${g.h}`]));
+  const inGame = p => opp[p.t] && (gsel === 'all' || gsel === opp[p.t].g.a + opp[p.t].g.h);
+  const all = P.filter(p => inGame(p) && p.gp >= 3 && roles[cat](p));
+  const out = all.filter(p => p.inj && p.inj[0] === 'O'), pool = all.filter(p => !(p.inj && p.inj[0] === 'O'));
+  const qbCount = {}; P.filter(p => roles.qb(p) && !(p.inj && p.inj[0] === 'O')).forEach(p => qbCount[p.t] = (qbCount[p.t] || 0) + 1);
+  const rowsH = pool.map(p => {
+    const o = opp[p.t].o, pr = proj(p, o, true), at = (opp[p.t].home ? 'vs ' : '@ ') + o;
+    const key = `${cat}|${p.n}`, track = `<button class="trk" data-desc="${p.n} ${{ td: 'anytime TD', qb: 'passing yards', rush: 'rushing yards', rec: 'receiving yards' }[cat]}${store[key] ? ' ' + (cat === 'td' ? '' : 'over ' + store[key]) : ''} (${at})" data-type="${{ td: 'Anytime TD', qb: 'Passing yards', rush: 'Rushing yards', rec: 'Receiving yards' }[cat]}" data-odds="${cat === 'td' ? (store[key] || '') : ''}">Track bet</button>`;
+    const tt = imp(p.t) ? ` · team total ${imp(p.t)}` : '';
+    if (cat === 'td') return [pr.tdP, `<div class="mrow"><div class="who">${p.n} <i>${p.t} ${p.pos} ${at}</i></div>
+      <div class="proj"><span class="num">${Math.round(pr.tdP * 100)}%</span><small>fair ${pr.tdP > .01 ? f1(1 / pr.tdP) : '-'}</small></div>
+      <div class="sub">${(p.rTD || 0) + (p.recTD || 0)} TDs in ${p.gp}${tt} · ${gtag(p.pos === 'WR' || p.pos === 'TE' ? fac(o, 'ptd') : fac(o, 'rtd'))} ${injTag(p)}</div>
+      <div class="sub">${formHTML(p, 'td', 0)}</div>
+      <div class="sub"><input class="ln" inputmode="text" placeholder="Odds" aria-label="Bookie odds for ${p.n}" data-key="${key}" value="${store[key] || ''}"> ${tdValue(pr.tdP, key)} ${track}</div></div>`];
+    const m = { qb: ['passYds', p.pYds / p.gp, fac(o, 'py')], rush: ['rushYds', p.rYds / p.gp, fac(o, 'ry')], rec: ['recYds', p.recYds / p.gp, pr.recF] }[cat];
+    const extra = cat === 'qb' ? ` · ${f1(pr.passTD)} TDs proj (${Math.round(pois(pr.passTD, 2) * 100)}% for 2+)${qbCount[p.t] > 1 ? ' · <b>check starter</b>' : ''}` : '';
+    const line = parseFloat(store[key]);
+    return [pr[m[0]], `<div class="mrow"><div class="who">${p.n} <i>${p.t} ${p.pos} ${at}</i></div>
+      <div class="proj"><span class="num">${f1(pr[m[0]])}</span><small>avg ${f1(m[1])}</small></div>
+      <div class="sub">${gtag(m[2])}${extra}${tt}${windy(p.t) && cat !== 'rush' ? ' · <span class="warn">wind</span>' : ''} ${injTag(p)}</div>
+      <div class="sub">${formHTML(p, STATKEY[cat], m[1])}</div>
+      <div class="sub"><input class="ln" inputmode="decimal" placeholder="Line" aria-label="Bookie line for ${p.n}" data-key="${key}" value="${store[key] || ''}"> ${lean(pr[m[0]], key)} ${hitHTML(p, STATKEY[cat], line)} ${track}</div></div>`];
+  }).sort((a, b) => b[0] - a[0]).map(r => r[1]).join('');
+  const help = { td: 'Chance of an anytime TD. Type the bookie price (6/4, 2.5 or +150) to see if it is value.',
+    qb: 'Projected passing yards. Type the bookie line for an over/under lean and how often he has gone over it.',
+    rush: 'Projected rushing yards. Type the bookie line for an over/under lean and how often he has gone over it.',
+    rec: 'Projected receiving yards (uses how the defence does against his position). Type the bookie line for a lean and hit rate.' }[cat];
+  const gs = gsel === 'all' ? D.games : D.games.filter(g => g.a + g.h === gsel);
+  $('#match-out').innerHTML = `<div class="seg small" id="cats"></div><div class="seg small" id="gms"></div>
+    <details class="card games" ${gsel === 'all' ? '' : 'open'}><summary>${gsel === 'all' ? 'Lines, team totals and weather for all games' : 'Line, team totals and weather'}</summary>${gs.map(gameLine).join('')}</details>
+    <div class="card" style="margin-top:12px">${rowsH || '<p class="note">No players match this filter.</p>'}</div>
+    ${out.length ? `<p class="note">Ruled out and left off: ${out.map(p => p.n).join(', ')}.</p>` : ''}
+    <p class="note">${help} "Last 3" is his last three games with logged stats (weeks ${D.logWeeks.join(', ')}); "low" means he wasn't in that week's top 40 at his position, so a quiet game or he didn't play. Team totals come from the betting line and nudge projections up or down. Injury statuses are from Friday's NFL report, so check team news before betting.</p>`;
+  seg($('#cats'), [['td', 'Anytime TD'], ['qb', 'QB pass yds'], ['rush', 'Rush yds'], ['rec', 'Rec yds']], cat, k => { cat = k; weekView(); }, 1);
+  seg($('#gms'), games, gsel, k => { gsel = k; weekView(); }, 1);
+}
+$('#match-out').addEventListener('change', e => {
+  const i = e.target.closest('input.ln'); if (!i) return;
+  store[i.dataset.key] = i.value; save(); mk === 'week' ? weekView() : finder();
+});
+$('#match-out').addEventListener('click', e => {
+  const g = e.target.closest('.game');
+  if (g && mk === 'week') { gsel = gsel === g.dataset.g ? 'all' : g.dataset.g; weekView(); return; }
+  const b = e.target.closest('.trk'); if (!b) return;
+  openBetForm({ desc: b.dataset.desc, type: b.dataset.type, odds: b.dataset.odds });
+});
+let fP = null, fO = null;
+function finder() {
+  const list = P.slice().sort((a, b) => a.pos.localeCompare(b.pos) || a.n.localeCompare(b.n));
+  if (!fP) fP = 'Jahmyr Gibbs';
+  const p = P.find(x => x.n === fP);
+  if (!fO || fO === p.t) fO = opp[p.t] ? opp[p.t].o : (p.t === 'NE' ? 'BUF' : 'NE');
+  const tw = opp[p.t] && opp[p.t].o === fO;
+  const pr = proj(p, fO, tw), t = T[fO], tiles = [];
+  const tile = (v, l, k) => tiles.push(`<div><span class="num">${v}</span><small>${l}</small>${k ? '<br>' + k : ''}</div>`);
+  if (pr.passYds != null) { tile(f1(pr.passYds), `pass yds proj (avg ${f1(p.pYds / p.gp)})`, gtag(fac(fO, 'py'))); tile(f1(pr.passTD), `pass TDs proj · ${Math.round(pois(pr.passTD, 2) * 100)}% for 2+`, gtag(fac(fO, 'ptd'))); }
+  if (pr.rushYds != null) tile(f1(pr.rushYds), `rush yds proj (avg ${f1(p.rYds / p.gp)})`, gtag(fac(fO, 'ry')));
+  if (pr.recYds != null) { tile(f1(pr.recYds), `rec yds proj (avg ${f1(p.recYds / p.gp)})`, gtag(pr.recF)); tile(f1(pr.rec), `catches proj (avg ${f1(p.rec / p.gp)})`, ''); }
+  if (p.rTD != null || p.recTD != null) tile(Math.round(pr.tdP * 100) + '%', `anytime TD · fair odds ${pr.tdP > .01 ? f1(1 / pr.tdP) : '-'}`, '');
+  const rk = fn => { const r = rankOf(fO, fn), m = r % 100; return r + (m > 10 && m < 14 ? 'th' : ['st', 'nd', 'rd'][r % 10 - 1] || 'th'); };
+  const lg = D.logWeeks.map(w => { const g = p.lg && p.lg[w]; return `<tr><td>Wk ${w}</td>${g === 'bye' ? '<td colspan="3">Bye</td>' : !g ? '<td colspan="3">Not in top 40 (quiet game or didn\'t play)</td>' :
+    `<td>${g.py != null ? g.py + ' pass' : ''}${g.py != null && g.ry ? ', ' : ''}${g.ry != null && (g.ry || g.py == null) && (g.ny == null || g.ry) ? g.ry + ' rush' : ''}</td><td>${g.ny != null ? g.rec + ' for ' + g.ny : ''}</td><td>${(g.ptd || 0) ? g.ptd + ' pass TD ' : ''}${(g.rtd || 0) + (g.ntd || 0) ? (g.rtd || 0) + (g.ntd || 0) + ' TD' : ''}</td>`}</tr>`; }).join('');
+  const d = t.dvp[p.pos];
+  $('#match-out').innerHTML = `<div class="card"><div class="pick">
+    <label>Player<select id="fp">${['QB', 'RB', 'WR', 'TE'].map(pos => `<optgroup label="${pos}">${list.filter(x => x.pos === pos).map(x => `<option ${x.n === fP ? 'selected' : ''}>${x.n}</option>`).join('')}</optgroup>`).join('')}</select></label>
+    <label>Against<select id="fo">${D.teams.slice().sort((a, b) => a.name.localeCompare(b.name)).map(x => `<option value="${x.ab}" ${x.ab === fO ? 'selected' : ''} ${x.ab === p.t ? 'disabled' : ''}>${x.name}</option>`).join('')}</select></label></div>
+    <h3 style="margin-top:8px">${p.n} <small>${p.t} ${p.pos} vs ${t.name}</small></h3>
+    ${p.inj ? `<p style="margin:4px 0">${injTag(p)}</p>` : ''}
+    ${tw ? `<div class="games" style="margin:6px 0">${gameLine(opp[p.t].g)}</div>` : ''}
+    <div class="big">${tiles.join('')}</div>
+    <p class="note">${t.name} allow ${f1(pg(t, 'dpYds'))} pass yds a game (${rk(x => pg(x, 'dpYds'))} toughest), ${f1(pg(t, 'drYds'))} rush yds (${rk(x => pg(x, 'drYds'))}), ${f1(t.drYPC)} a carry, ${t.dpTD} passing and ${t.drTD} rushing TDs, and ${f1(t.pa / t.gp)} points a game.${d ? ` Against ${p.pos}s lately: ${f1(d[0])} yds and ${d[1].toFixed(2)} TDs a game (${rk(x => x.dvp[p.pos][0])} toughest).` : ''}</p>
+    <h3 style="margin-top:10px">Recent games</h3><table class="lg"><tbody>${lg}</tbody></table></div>
+    <p class="note">How it works: his per-game average is scaled by how much the opponent gives up compared with the league average, overall and to his position (yards capped at ±25%). TD chances use TDs allowed, with hot or cold streaks pulled back towards normal. For this week's opponent it also uses the betting line's team total and the wind. A guide, not a guarantee.</p>`;
+  $('#fp').onchange = e => { fP = e.target.value; fO = null; finder(); };
+  $('#fo').onchange = e => { fO = e.target.value; finder(); };
+}
+/* ---------- game picks: spread, over/under, moneyline ---------- */
+const Phi = z => { const t = 1 / (1 + .2316419 * Math.abs(z)), d = .3989423 * Math.exp(-z * z / 2), p = d * t * (.3193815 + t * (-.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274)))); return z > 0 ? 1 - p : p; };
+function gameModel(g) {
+  const A = T[g.a], H = T[g.h], lg = AL.pts;
+  const pa = (A.pf / A.gp) * (H.pa / H.gp) / lg - .75, ph = (H.pf / H.gp) * (A.pa / A.gp) / lg + .75; // ~1.5 pts home edge
+  const o = g.odds, mLine = o.fav === g.h ? o.sp : -o.sp;              // bookies' expected home margin
+  const margin = ((ph - pa) + mLine) / 2, total = ((ph + pa) + o.tot) / 2; // pulled halfway to the line
+  return { pa, ph, margin, total, mLine };
+}
+function gamePicks(kind) {
+  return D.games.filter(g => g.odds).map(g => {
+    const m = gameModel(g), o = g.odds, score = `Stats say ${g.a} ${Math.round(m.pa)} - ${Math.round(m.ph)} ${g.h}`;
+    if (kind === 'spread') {
+      const pH = Phi((m.margin - m.mLine) / 13.5), home = pH >= .5, team = home ? g.h : g.a, line = (team === o.fav ? '-' : '+') + o.sp;
+      return { g, p: home ? pH : 1 - pH, bet: `${team} ${line}`, sub: score };
+    }
+    if (kind === 'total') {
+      const pO = Phi((m.total - o.tot) / 10), over = pO >= .5;
+      return { g, p: over ? pO : 1 - pO, bet: `${over ? 'Over' : 'Under'} ${o.tot}`, sub: `${score} (${Math.round(m.ph + m.pa)} total)` };
+    }
+    const pH = Phi(m.margin / 13.5), mk = o.ml, eH = pH - mk[g.h], eA = (1 - pH) - mk[g.a], home = eH >= eA, team = home ? g.h : g.a;
+    return { g, p: home ? pH : 1 - pH, edge: home ? eH : eA, book: mk[team], bet: `${team} to win`, sub: `Bookies ${Math.round(mk[team] * 100)}% · fair odds ${f1(1 / (home ? pH : 1 - pH))}` };
+  }).filter(x => kind !== 'ml' || x.edge > 0).sort((a, b) => kind === 'ml' ? b.edge - a.edge : b.p - a.p).slice(0, 5);
+}
+let topK = 'td';
+function topView() {
+  let rows, help;
+  if (topK === 'td') {
+    rows = P.filter(p => opp[p.t] && p.gp >= 3 && roles.td(p) && !(p.inj && p.inj[0] === 'O'))
+      .map(p => [p, proj(p, opp[p.t].o, true).tdP]).sort((a, b) => b[1] - a[1]).slice(0, 5)
+      .map(([p, pr], i) => { const g = opp[p.t].g; return `<div class="pickrow" data-p="${p.n}"><span class="rk">${i + 1}</span><div><div class="who">${p.n}</div>
+        <div class="gsub">Anytime TD · ${p.t} ${opp[p.t].home ? 'vs' : '@'} ${opp[p.t].o} · ${g.k}</div>${p.inj ? `<div style="margin-top:4px">${injTag(p)}</div>` : ''}</div>
+        <div class="pct">${Math.round(pr * 100)}%<small>fair ${f1(1 / pr)}</small></div></div>`; });
+    help = 'The five players most likely to score a touchdown in the upcoming games. Players ruled out are left off. Tap a name for his full matchup.';
+  } else {
+    rows = gamePicks(topK).map((x, i) => `<div class="pickrow"><span class="rk">${i + 1}</span><div><div class="who">${x.bet}</div>
+      <div class="gsub">${x.g.a} @ ${x.g.h} · ${x.g.k}${x.g.note ? ' · ' + x.g.note : ''}</div><div class="gsub">${x.sub}</div></div>
+      <div class="pct">${Math.round(x.p * 100)}%<small>${topK === 'ml' ? 'chance to win' : topK === 'spread' ? 'chance to cover' : 'chance it lands'}</small></div></div>`);
+    help = { spread: 'The five sides most likely to cover the spread.', total: 'The five over/unders most likely to land.',
+      ml: 'Teams the stats rate more likely to win than the bookies do, biggest gap first. The big number is the app\'s win chance; compare its fair odds with your bookie\'s price before betting.' }[topK] +
+      ' Each team\'s expected score comes from points scored and allowed this season, with a small home edge, then pulled halfway to the bookies\' line because betting lines are hard to beat. Lines are early-week prices, so check they haven\'t moved.';
+  }
+  $('#match-out').innerHTML = `<div class="seg small" id="topk"></div><div class="card">${rows.join('') || '<p class="note">No picks right now.</p>'}</div><p class="note">${help} A guide, not a guarantee.</p>`;
+  seg($('#topk'), [['td', 'Anytime TD'], ['spread', 'Spread'], ['total', 'Over/under'], ['ml', 'Moneyline']], topK, k => { topK = k; topView(); }, 1);
+}
+$('#match-out').addEventListener('click', e => { const r = e.target.closest('.pickrow[data-p]'); if (r && mk === 'top') { fP = r.dataset.p; fO = null; mk = 'finder'; seg($('#seg-match'), MSEG, 'finder', matchView); finder(); } });
+const MSEG = [['top', 'Top 5 picks'], ['week', `Week ${D.week}`], ['finder', 'Any player vs any team']];
+function matchView(k) { mk = k; k === 'top' ? topView() : k === 'week' ? weekView() : finder(); }
+seg($('#seg-match'), MSEG, 'top', matchView);
+matchView('top');
+
+/* ---------- bet tracker ---------- */
+const TYPES = ['Anytime TD', 'Passing yards', 'Rushing yards', 'Receiving yards', 'Receptions', 'Spread', 'Game total', 'Multi / acca', 'Other'];
+let bets = [], limit = null, col = null, metaRef = null, mode = 'local', armed = null, broken = false;
+try { bets = JSON.parse(localStorage.getItem('ge-bets') || '[]'); limit = JSON.parse(localStorage.getItem('ge-limit') || 'null'); } catch (e) {}
+const money = v => (v < 0 ? '-£' : '£') + Math.abs(v).toFixed(2);
+const weekStart = () => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 4) % 7)); return d.getTime(); }; // since Wednesday
+const ret = b => b.status === 'won' ? b.stake * b.odds : b.status === 'void' ? b.stake : 0;
+function renderBets() {
+  const settled = bets.filter(b => b.status !== 'open');
+  const staked = settled.reduce((s, b) => s + b.stake, 0), back = settled.reduce((s, b) => s + ret(b), 0), pl = back - staked;
+  const wins = settled.filter(b => b.status === 'won').length, decided = settled.filter(b => b.status !== 'void').length;
+  const wk = bets.filter(b => b.ts >= weekStart()).reduce((s, b) => s + b.stake, 0);
+  const byType = TYPES.map(ty => { const s = settled.filter(b => b.type === ty); if (!s.length) return null; const st = s.reduce((a, b) => a + b.stake, 0), r = s.reduce((a, b) => a + ret(b), 0); return [ty, s.length, r - st, st ? (r - st) / st * 100 : 0]; }).filter(Boolean);
+  const pct = limit ? Math.min(100, wk / limit * 100) : 0;
+  $('#bets-sum').innerHTML = `<div class="big" style="margin-top:0">
+    <div><span class="num ${pl > 0 ? 'pos' : pl < 0 ? 'neg' : ''}">${money(pl)}</span><small>profit / loss on settled bets</small></div>
+    <div><span class="num">${staked ? Math.round(pl / staked * 100) + '%' : '-'}</span><small>return on stakes (ROI)</small></div>
+    <div><span class="num">${decided ? Math.round(wins / decided * 100) + '%' : '-'}</span><small>win rate · ${wins} of ${decided}</small></div>
+    <div><span class="num">${money(wk)}</span><small>staked this NFL week${limit ? ` of ${money(limit)} limit` : ''}</small>${limit ? `<div class="bar"><i style="width:${pct}%;background:${wk > limit ? 'var(--bad)' : wk > limit * .8 ? 'var(--flag)' : 'var(--good)'}"></i></div>` : ''}</div></div>
+    ${limit && wk > limit ? `<p class="warnbox">You're over your weekly limit of ${money(limit)}.</p>` : ''}
+    ${byType.length ? `<h3 style="margin-top:14px">By bet type</h3><ol>${byType.sort((a, b) => b[2] - a[2]).map(([ty, n, p, roi], i) => row(i + 1, ty, n + ' bets', `<span class="${p >= 0 ? 'pos' : 'neg'}">${money(p)}</span> <span style="font-size:14px;color:var(--mute)">${Math.round(roi)}%</span>`)).join('')}</ol>` : ''}`;
+  const list = bets.slice().sort((a, b) => (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1) || b.ts - a.ts);
+  $('#bets-list').innerHTML = list.length ? list.map(b => `<div class="mrow"><div class="who">${esc(b.desc)} <i>${b.type} · ${new Date(b.ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</i></div>
+    <div class="proj"><span class="num" style="font-size:20px">${money(b.stake)}</span><small>@ ${(+b.odds).toFixed(2)}${b.status === 'open' ? ` · returns ${money(b.stake * b.odds)}` : ''}</small></div>
+    <div class="sub">${b.status === 'open' ? `<button class="res" data-id="${b.id}" data-s="won">Won</button><button class="res" data-id="${b.id}" data-s="lost">Lost</button><button class="res" data-id="${b.id}" data-s="void">Void</button>`
+      : `<span class="tag ${b.status === 'won' ? 'g5' : b.status === 'lost' ? 'g1' : ''}">${b.status === 'won' ? 'Won ' + money(ret(b) - b.stake) : b.status === 'lost' ? 'Lost' : 'Void'}</span><button class="res" data-id="${b.id}" data-s="open">Reopen</button>`}
+      <button class="res del" data-id="${b.id}" data-s="del">${armed === b.id ? 'Tap again to delete' : 'Delete'}</button></div></div>`).join('') : '<p class="note">No bets yet. Add one above, or tap "Track bet" on any player in Matchups.</p>';
+  $('#store-note').textContent = mode === 'db' ? 'Your bets are saved to your account, so they show up on any device you open this on.' : 'Your bets are saved in this browser on this device.';
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function persistLocal() { try { localStorage.setItem('ge-bets', JSON.stringify(bets)); localStorage.setItem('ge-limit', JSON.stringify(limit)); } catch (e) {} }
+async function saveBet(b) {
+  if (mode === 'db') { try { await col.doc(b.id).set(b); return; } catch (e) { mode = 'local'; broken = true; } }
+  const i = bets.findIndex(x => x.id === b.id); i >= 0 ? bets[i] = b : bets.push(b); persistLocal(); renderBets();
+}
+async function delBet(id) {
+  if (mode === 'db') { try { await col.doc(id).delete(); return; } catch (e) { mode = 'local'; broken = true; } }
+  bets = bets.filter(b => b.id !== id); persistLocal(); renderBets();
+}
+function openBetForm(pre) {
+  go('bets');
+  $('#bf-desc').value = pre.desc || ''; $('#bf-type').value = pre.type || 'Other'; $('#bf-odds').value = pre.odds || ''; $('#bf-stake').focus();
+}
+$('#bf-type').innerHTML = TYPES.map(t => `<option>${t}</option>`).join('');
+$('#bet-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const odds = parseOdds($('#bf-odds').value), stake = parseFloat($('#bf-stake').value), desc = $('#bf-desc').value.trim();
+  if (!desc || !(stake > 0) || !odds) { $('#bf-msg').textContent = 'Add what the bet is, a stake and the odds (like 6/4, 2.5 or +150).'; return; }
+  $('#bf-msg').textContent = '';
+  const b = { id: 'b' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ts: Date.now(), desc, type: $('#bf-type').value, stake: Math.round(stake * 100) / 100, odds: Math.round(odds * 1000) / 1000, status: 'open' };
+  e.target.reset(); await saveBet(b);
+});
+$('#bf-limit').addEventListener('change', async e => {
+  const v = parseFloat(e.target.value); limit = v > 0 ? v : null;
+  if (mode === 'db') { try { await metaRef.set({ limit }); } catch (err) {} } else persistLocal();
+  renderBets();
+});
+$('#bets-list').addEventListener('click', async e => {
+  const b = e.target.closest('.res'); if (!b) return;
+  const id = b.dataset.id, s = b.dataset.s;
+  if (s === 'del') { if (armed !== id) { armed = id; renderBets(); return; } armed = null; await delBet(id); return; }
+  const bet = bets.find(x => x.id === id); if (bet) await saveBet(Object.assign({}, bet, { status: s }));
+});
+renderBets();
+if (limit) $('#bf-limit').value = limit;
+(async () => {
+  try {
+    if (!window.claude || !claude.use) return;
+    const [db, user] = await Promise.all([claude.use('db'), claude.use('user')]);
+    const uid = user && await user.id();
+    if (!db || !uid) return;
+    metaRef = db.doc('data/users/' + uid + '/tracker');
+    col = metaRef.collection('bets');
+    const local = bets.slice();
+    col.onSnapshot(async snap => {
+      if (broken) return;
+      if (mode !== 'db') {
+        mode = 'db';
+        const have = new Set(snap.docs.map(d => d.id));
+        for (const b of local) if (!have.has(b.id)) { try { await col.doc(b.id).set(b); } catch (e) { broken = true; break; } } // move any bets saved on this device
+        if (broken) { mode = 'local'; renderBets(); return; } // this viewer can't save to the account: keep bets on this device
+      }
+      bets = snap.docs.map(d => d.data()); renderBets();
+    }, () => { mode = 'local'; renderBets(); });
+    const m = await metaRef.get();
+    if (m.exists && m.data().limit) { limit = m.data().limit; $('#bf-limit').value = limit; renderBets(); }
+  } catch (e) { mode = 'local'; }
+})();
+
+const h = location.hash.slice(1); if (['teams', 'players', 'match', 'bets'].includes(h)) go(h);
+}
+</script>
+</body>
+</html>
